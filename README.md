@@ -1,6 +1,6 @@
 # StableAnimator
 
-<a href='https://francis-rings.github.io/StableAnimator'><img src='https://img.shields.io/badge/Project-Page-Green'></a> <a href='https://arxiv.org/abs/2406.19680'><img src='https://img.shields.io/badge/Paper-Arxiv-red'></a> <a href='https://huggingface.co/FrancisRing/StableAnimator/tree/main'><img src='https://img.shields.io/badge/HuggingFace-Model-orange'></a>
+<a href='https://francis-rings.github.io/StableAnimator'><img src='https://img.shields.io/badge/Project-Page-Green'></a> <a href='https://arxiv.org/abs/2411.17697'><img src='https://img.shields.io/badge/Paper-Arxiv-red'></a> <a href='https://huggingface.co/FrancisRing/StableAnimator/tree/main'><img src='https://img.shields.io/badge/HuggingFace-Model-orange'></a>
 
 StableAnimator: High-Quality Identity-Preserving Human Image Animation
 <br/>
@@ -159,7 +159,7 @@ If you find our work useful, please consider citing it:
 @article{tu2024stableanimator,
   title={StableAnimator: High-Quality Identity-Preserving Human Image Animation},
   author={Shuyuan Tu and Zhen Xing and Xintong Han and Zhi-Qi Cheng and Qi Dai and Chong Luo and Zuxuan Wu},
-  journal={arXiv preprint arXiv:2406.19680},
+  journal={arXiv preprint arXiv:2411.17697},
   year={2024}
 }
 ```
