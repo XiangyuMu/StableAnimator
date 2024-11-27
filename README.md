@@ -1,6 +1,6 @@
 # StableAnimator
 
-<a href='https://francis-rings.github.io/StableAnimator'><img src='https://img.shields.io/badge/Project-Page-Green'></a> <a href='https://arxiv.org/abs/2406.19680'><img src='https://img.shields.io/badge/Paper-Arxiv-red'></a> 
+<a href='https://francis-rings.github.io/StableAnimator'><img src='https://img.shields.io/badge/Project-Page-Green'></a> <a href='https://arxiv.org/abs/2406.19680'><img src='https://img.shields.io/badge/Paper-Arxiv-red'></a> <a href='https://huggingface.co/FrancisRing/StableAnimator/tree/main'><img src='https://img.shields.io/badge/HuggingFace-Model-orange'></a>
 
 StableAnimator: High-Quality Identity-Preserving Human Image Animation
 <br/>
@@ -20,10 +20,10 @@ StableAnimator: High-Quality Identity-Preserving Human Image Animation
 </p>
 
 <p align="center">
-  <img src="assets/figures/case-35.gif" width="768" />
-  <img src="assets/figures/case-42.gif" width="768" />
-  <img src="assets/figures/case-18.gif" width="768" />
-  <img src="assets/figures/case-24.gif" width="768" />
+  <img src="assets/figures/case-35.gif" width="384" />
+  <img src="assets/figures/case-42.gif" width="384" />
+  <img src="assets/figures/case-18.gif" width="384" />
+  <img src="assets/figures/case-24.gif" width="384" />
   <br/>
   <span>Comparison results between StableAnimator and state-of-the-art (SOTA) human image animation models highlight the superior performance of StableAnimator in delivering <b>high-fidelity, identity-preserving human image animation</b>.</span>
 </p>
