@@ -40,15 +40,17 @@ StableAnimator: High-Quality Identity-Preserving Human Image Animation
 Current diffusion models for human image animation struggle to ensure identity (ID) consistency. This paper presents StableAnimator, <b>the first end-to-end ID-preserving video diffusion framework, which synthesizes high-quality videos without any post-processing, conditioned on a reference image and a sequence of poses.</b> Building upon a video diffusion model, StableAnimator contains carefully designed modules for both training and inference striving for identity consistency. In particular, StableAnimator begins by computing image and face embeddings with off-the-shelf extractors, respectively and face embeddings are further refined by interacting with image embeddings using a global content-aware Face Encoder. Then, StableAnimator introduces a novel distribution-aware ID Adapter that prevents interference caused by temporal layers while preserving ID via alignment. During inference, we propose a novel Hamilton-Jacobi-Bellman (HJB) equation-based optimization to further enhance the face quality. We demonstrate that solving the HJB equation can be integrated into the diffusion denoising process, and the resulting solution constrains the denoising path and thus benefits ID preservation. Experiments on multiple benchmarks show the effectiveness of StableAnimator both qualitatively and quantitatively.
 
 ## News
-* `[2024-11-26]`:🔥 The project page, code, technical report and [a basic model checkpoint](https://huggingface.co/ixaac/MimicMotion/blob/main/MimicMotion_1.pth) are released. Further training codes, data pre-processing codes, the evaluation dataset and StableAnimator-pro will be released very soon. Stay tuned!
+* `[2024-11-26]`:🔥 The data pre-processing codes (human skeleton extraction) are available! Other codes will be released very soon. Stay tuned!
+* `[2024-11-26]`:🔥 The project page, code, technical report and [a basic model checkpoint](https://huggingface.co/FrancisRing/StableAnimator/tree/main) are released. Further training codes, data pre-processing codes, the evaluation dataset and StableAnimator-pro will be released very soon. Stay tuned!
 
 ## To-Do List
 - [x] StableAnimator-basic 
 - [x] Inference Code
 - [x] Evaluation Samples
+- [x] Data Pre-Processing Code (Skeleton Extraction)
+- [ ] Data Pre-Processing Code (Human Face Mask Extraction)
 - [ ] Evaluation Dataset
 - [ ] Training Code
-- [ ] Data Pre-Processing Code (Skeleton Extraction and Human Face Mask Extraction)
 - [ ] StableAnimator-pro
 - [ ] Inference Code with HJB-based Face Optimization
 
@@ -122,7 +124,26 @@ inference/
 │   ├── faces
 │   └── reference.png
 ```
-It is worth noting that the data pre-processing codes, including human skeleton extraction and human face extraction, will be released very soon. Stay tuned! 
+It is worth noting that the data pre-processing codes (human face mask extraction) will be released very soon. Stay tuned! 
+
+### Human Skeleton Extraction
+We leverage the pre-trained DWPose to extract the human skeletons. In the initialization of DWPose, the pretrained weights should be configured in `/DWPose/dwpose_utils/wholebody.py`:
+```
+onnx_det = 'path/checkpoints/DWPose/yolox_l.onnx'
+onnx_pose = 'path/checkpoints/DWPose/dw-ll_ucoco_384.onnx'
+```
+Given the target image folder containing multiple .png files, you can use the following command to obtain the corresponding human skeleton images:
+```
+python skeleton_extraction.py --target_image_folder_path="path/test/target_images" --ref_image_path="path/test/reference.png" --poses_folder_path="path/test/poses"
+```
+It is worth noting that the .png files in the target image folder are named in the format `frame_i.png`, such as `frame_0.png`, `frame_1.png`, and so on. 
+`--ref_image_path` refers to the path of the given reference image. The obtained human skeleton images are saved in `path/test/poses`. It is particularly significant that the target skeleton images should be aligned with the reference image regarding the body shape.
+
+If you only have the target MP4 file (target.mp4), we recommend you to use `ffmpeg` to convert the MP4 file to multiple frames (.png files) without any quality loss.
+```
+ffmpeg -i target.mp4 -q:v 1 path/test/target_images/frame_%d.png
+```
+The obtained frames are saved in `path/test/target_images`.
 
 ### Model inference
 
