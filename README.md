@@ -100,7 +100,7 @@ checkpoints/
 1. Download DWPose pretrained model: [dwpose](https://huggingface.co/FrancisRing/StableAnimator/tree/main/DWPose)
 2. Download the pre-trained checkpoint of StableAnimator from [Huggingface](https://huggingface.co/FrancisRing/StableAnimator/tree/main/Animation)
 3. Download the SVD pretrained model: [SVD](https://huggingface.co/stabilityai/stable-video-diffusion-img2vid-xt/tree/main)
-4. The weights for the face model (ArcFace) will be automatically downloaded to the './models' when you run the inference command.
+4. The weights for the face model (ArcFace) will be automatically downloaded to the './models' when you run the inference command. If the face model weights cannot be downloaded automatically, you can manually download the pretrained weights from [Huggingface](https://huggingface.co/FrancisRing/StableAnimator/tree/main/antelopev2).
 
 The overall file structure of this project should be organized as follows:
 ```
