@@ -100,7 +100,41 @@ checkpoints/
 1. Download DWPose pretrained model: [dwpose](https://huggingface.co/FrancisRing/StableAnimator/tree/main/DWPose)
 2. Download the pre-trained checkpoint of StableAnimator from [Huggingface](https://huggingface.co/FrancisRing/StableAnimator/tree/main/Animation)
 3. Download the SVD pretrained model: [SVD](https://huggingface.co/stabilityai/stable-video-diffusion-img2vid-xt/tree/main)
+4. The weights for the face model (ArcFace) will be automatically downloaded to the './models' when you run the inference command.
 
+The overall file structure of this project should be organized as follows:
+```
+StableAnimator/
+├── DWPose
+├── animation
+├── checkpoints
+│   ├── DWPose
+│   │   ├── dw-ll_ucoco_384.onnx
+│   │   └── yolox_l.onnx
+│   ├── Animation
+│   │   ├── pose_net.pth
+│   │   ├── face_encoder.pth
+│   │   └── unet.pth
+│   └── SVD
+│       ├── feature_extractor
+│       ├── image_encoder
+│       ├── scheduler
+│       ├── unet
+│       ├── vae
+│       ├── model_index.json
+│       ├── svd_xt.safetensors
+│       └── svd_xt_image_decoder.safetensors
+├── models
+│   └── antelopev2
+│       ├── 1k3d68.onnx
+│       ├── 2d106det.onnx
+│       ├── genderage.onnx
+│       ├── glintr100.onnx
+│       └── scrfd_10g_bnkps.onnx
+├── command_basic_infer.sh
+├── inference_basic.py
+├── requirement.txt 
+```
 
 ### Evaluation Samples
 The evaluation samples presented in the paper can be downloaded from [OneDrive](https://1drv.ms/f/c/becb962aad1a1f95/EubdzCAI7BFLhJff2LrHkt8BC9mOiwJ5V67t-ypxRnCK4Q?e=ElEmcn). Please download evaluation samples manually as follows:
