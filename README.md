@@ -69,7 +69,7 @@ pip install onnxruntime-gpu==1.17.0 --index-url=https://pkgs.dev.azure.com/onnxr
 ```
 
 ### Download weights
-If you experience connection issues with Hugging Face, you can utilize the mirror endpoint by setting the environment variable: `export HF_ENDPOINT=https://hf-mirror.com`.
+If you encounter connection issues with Hugging Face, you can utilize the mirror endpoint by setting the environment variable: `export HF_ENDPOINT=https://hf-mirror.com`.
 Please download weights manually as follows:
 ```
 cd StableAnimator/
