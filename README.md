@@ -138,7 +138,7 @@ StableAnimator/
 ```
 
 ### Evaluation Samples
-The evaluation samples presented in the paper can be downloaded from [OneDrive](https://1drv.ms/f/c/becb962aad1a1f95/EubdzCAI7BFLhJff2LrHkt8BC9mOiwJ5V67t-ypxRnCK4Q?e=ElEmcn). Please download evaluation samples manually as follows:
+The evaluation samples presented in the paper can be downloaded from [OneDrive](https://1drv.ms/f/c/becb962aad1a1f95/EubdzCAI7BFLhJff2LrHkt8BC9mOiwJ5V67t-ypxRnCK4Q?e=ElEmcn) or `inference.zip` in [HuggingFace](https://huggingface.co/FrancisRing/StableAnimator/tree/main). Please download evaluation samples manually as follows:
 ```
 cd StableAnimator/
 mkdir inference
