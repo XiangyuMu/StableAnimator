@@ -209,9 +209,9 @@ ffmpeg -framerate 20 -i frame_%d.png -c:v libx264 -crf 10 -pix_fmt yuv420p /path
 
 ### VRAM requirement and Runtime
 
-For the 15s demo video (fps=30), the 16-frame basic model requires 8GB VRAM and finishes in 12 minutes on a 4090 GPU.
+For the 15s demo video (512x512, fps=30), the 16-frame basic model requires 8GB VRAM and finishes in 5 minutes on a 4090 GPU.
 
-The minimum VRAM requirement for the 16-frame U-Net of the pro model is 10GB; however, the VAE decoder demands 16GB. You have the option to run the VAE decoder on CPU.
+The minimum VRAM requirement for the 16-frame U-Net of the pro model is 10GB (576x1024, fps=30); however, the VAE decoder demands 16GB. You have the option to run the VAE decoder on CPU.
 
 ## Contact
 If you have any suggestions or find our work helpful, feel free to contact me
