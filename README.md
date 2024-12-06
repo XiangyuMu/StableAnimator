@@ -40,6 +40,7 @@ StableAnimator: High-Quality Identity-Preserving Human Image Animation
 Current diffusion models for human image animation struggle to ensure identity (ID) consistency. This paper presents StableAnimator, <b>the first end-to-end ID-preserving video diffusion framework, which synthesizes high-quality videos without any post-processing, conditioned on a reference image and a sequence of poses.</b> Building upon a video diffusion model, StableAnimator contains carefully designed modules for both training and inference striving for identity consistency. In particular, StableAnimator begins by computing image and face embeddings with off-the-shelf extractors, respectively and face embeddings are further refined by interacting with image embeddings using a global content-aware Face Encoder. Then, StableAnimator introduces a novel distribution-aware ID Adapter that prevents interference caused by temporal layers while preserving ID via alignment. During inference, we propose a novel Hamilton-Jacobi-Bellman (HJB) equation-based optimization to further enhance the face quality. We demonstrate that solving the HJB equation can be integrated into the diffusion denoising process, and the resulting solution constrains the denoising path and thus benefits ID preservation. Experiments on multiple benchmarks show the effectiveness of StableAnimator both qualitatively and quantitatively.
 
 ## News
+* `[2024-12-6]`:🔥 All data preprocessing codes (human skeleton extraction and human face mask extraction) are released! The training code and detailed training tutorial will be released before 2024.12.13. Stay tuned!
 * `[2024-12-4]`:🔥 We are thrilled to release an interesting dance demo (🔥🔥APT Dance🔥🔥)! The generated video can be seen on [YouTube](https://www.youtube.com/watch?v=KNPoAsWr_sk) and [Bilibili](https://www.bilibili.com/video/BV1KczXYhER7).
 * `[2024-11-28]`:🔥 The data pre-processing codes (human skeleton extraction) are available! Other codes will be released very soon. Stay tuned!
 * `[2024-11-26]`:🔥 The project page, code, technical report and [a basic model checkpoint](https://huggingface.co/FrancisRing/StableAnimator/tree/main) are released. Further training codes, data pre-processing codes, the evaluation dataset and StableAnimator-pro will be released very soon. Stay tuned!
@@ -49,7 +50,7 @@ Current diffusion models for human image animation struggle to ensure identity (
 - [x] Inference Code
 - [x] Evaluation Samples
 - [x] Data Pre-Processing Code (Skeleton Extraction)
-- [ ] Data Pre-Processing Code (Human Face Mask Extraction)
+- [x] Data Pre-Processing Code (Human Face Mask Extraction)
 - [ ] Evaluation Dataset
 - [ ] Training Code
 - [ ] StableAnimator-pro
@@ -180,6 +181,13 @@ ffmpeg -i target.mp4 -q:v 1 path/test/target_images/frame_%d.png
 ```
 The obtained frames are saved in `path/test/target_images`.
 
+### Human Face Mask Extraction
+Given the path to an image folder containing multiple RGB `.png` files, you can run the following command to extract the corresponding human face masks:
+```
+python face_mask_extraction.py --image_folder="path/StableAnimator/inference/your_case/target_images"
+```
+`path/StableAnimator/inference/your_case/target_images` contains multiple `.png` files. The obtained masks are saved in `path/StableAnimator/inference/your_case/faces`.
+
 ### Model inference
 
 A sample configuration for testing is provided as `command_basic_infer.sh`. You can also easily modify the various configurations according to your needs.
@@ -203,7 +211,7 @@ ffmpeg -framerate 20 -i frame_%d.png -c:v libx264 -crf 10 -pix_fmt yuv420p /path
 
 For the 15s demo video (fps=30), the 16-frame basic model requires 8GB VRAM and finishes in 12 minutes on a 4090 GPU.
 
-The minimum VRAM requirement for the 16-frame U-Net model is 10GB; however, the VAE decoder demands 16GB. You have the option to run the VAE decoder on CPU.
+The minimum VRAM requirement for the 16-frame U-Net of the pro model is 10GB; however, the VAE decoder demands 16GB. You have the option to run the VAE decoder on CPU.
 
 ## Contact
 If you have any suggestions or find our work helpful, feel free to contact me
