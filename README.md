@@ -99,12 +99,13 @@ StableAnimator/
 │   │   ├── model_index.json
 │   │   ├── svd_xt.safetensors
 │   │   └── svd_xt_image_decoder.safetensors
-│   ├── antelopev2
-│   │   ├── 1k3d68.onnx
-│   │   ├── 2d106det.onnx
-│   │   ├── genderage.onnx
-│   │   ├── glintr100.onnx
-│   │   └── scrfd_10g_bnkps.onnx
+│   ├── models
+│   │   └── antelopev2
+│   │       ├── 1k3d68.onnx
+│   │       ├── 2d106det.onnx
+│   │       ├── genderage.onnx
+│   │       ├── glintr100.onnx
+│   │       └── scrfd_10g_bnkps.onnx
 │   └── inference.zip
 ├── app.py
 ├── command_basic_infer.sh
