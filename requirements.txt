@@ -17,3 +17,4 @@ insightface
 facexlib
 opencv-python-headless
 gradio
+onnxruntime-gpu
