@@ -212,8 +212,8 @@ with gr.Blocks(theme=gr.themes.Soft()) as demo:
                 pose_input = gr.Textbox(label="姿势参考(目录路径)", placeholder="在此输入您姿势参考目录")
             with gr.Group():
                 with gr.Row():
-                    width = gr.Number(label="宽度（16的倍数）", value=512)
-                    height = gr.Number(label="高度（16的倍数）", value=512)
+                    width = gr.Number(label="宽度（仅支持512*512和576*1024）", value=512)
+                    height = gr.Number(label="高度（仅支持512*512和576*1024）", value=512)
                 with gr.Row():
                     guidance_scale = gr.Number(label="指导尺度（推荐3.0）", value=3.0, step=0.1, precision=1)
                     num_inference_steps = gr.Number(label="推理步数（推荐25）", value=20)
@@ -236,6 +236,7 @@ with gr.Blocks(theme=gr.themes.Soft()) as demo:
         ["inference/case-2/reference.png","inference/case-2/poses",512,512],
         ["inference/case-3/reference.png","inference/case-3/poses",512,512],
         ["inference/case-4/reference.png","inference/case-4/poses",512,512],
+        ["inference/case-5/reference.png","inference/case-5/poses",576,1024],
     ], inputs=[image_input, pose_input, width, height])
 
 
