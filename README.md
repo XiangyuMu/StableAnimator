@@ -62,48 +62,22 @@ For the basic version of the model checkpoint, it supports generating videos at 
 
 ### Environment setup
 
-Recommend python 3+ with torch 2.x are validated with an Nvidia V100 GPU. We recommend you to utilize the docker image [2.1.0-cuda11.8-cudnn8-devel](https://hub.docker.com/layers/pytorch/pytorch/2.1.0-cuda11.8-cudnn8-devel/images/sha256-558b78b9a624969d54af2f13bf03fbad27907dbb6f09973ef4415d6ea24c80d9?context=explore) or [deeptimhe/ubuntu20.04-cuda11.3.1-python3.8-pytorch1.12:orig-sing-pytorch3d0.7.2](https://hub.docker.com/layers/deeptimhe/ubuntu20.04-cuda11.3.1-python3.8-pytorch1.12/orig-sing-pytorch3d0.7.2/images/sha256-023fbbc55df6d9feffc75a3fe2daba31e09ecc39c5dcc39a6cb64e5c6a7f9ca7?context=explore). Follow the commands below to install all the dependencies of StableAnimator:
-
 ```
+pip install torch==2.5.1 torchvision==0.20.1 torchaudio==2.5.1 --index-url https://download.pytorch.org/whl/cu124
+pip install torch==2.5.1+cu124 xformers --index-url https://download.pytorch.org/whl/cu124
 pip install -r requirements.txt
-conda install xformers -c xformers -y
-pip install onnxruntime-gpu==1.17.0 --index-url=https://pkgs.dev.azure.com/onnxruntime/onnxruntime/_packaging/onnxruntime-cuda-12/pypi/simple
 ```
 
 ### Download weights
 If you encounter connection issues with Hugging Face, you can utilize the mirror endpoint by setting the environment variable: `export HF_ENDPOINT=https://hf-mirror.com`.
 Please download weights manually as follows:
 ```
-cd StableAnimator/
-mkdir checkpoints
+cd StableAnimator
+git lfs install
+git clone https://huggingface.co/FrancisRing/StableAnimator checkpoints
 ```
 All the weights should be organized in models as follows
 ```
-checkpoints/
-├── DWPose
-│   ├── dw-ll_ucoco_384.onnx
-│   └── yolox_l.onnx
-├──Animation
-│   ├── pose_net.pth
-│   ├── face_encoder.pth
-│   └── unet.pth
-├──SVD
-│   └── stable-video-diffusion-img2vid-xt
-│       ├── feature_extractor
-│       ├── image_encoder
-│       ├── scheduler
-│       ├── unet
-│       ├── vae
-│       ├── model_index.json
-│       ├── svd_xt.safetensors
-│       └── svd_xt_image_decoder.safetensors 
-
-```
-1. Download DWPose pretrained model: [dwpose](https://huggingface.co/FrancisRing/StableAnimator/tree/main/DWPose)
-2. Download the pre-trained checkpoint of StableAnimator from [Huggingface](https://huggingface.co/FrancisRing/StableAnimator/tree/main/Animation)
-3. Download the SVD pretrained model: [SVD](https://huggingface.co/stabilityai/stable-video-diffusion-img2vid-xt/tree/main)
-4. The weights for the face model (ArcFace) will be automatically downloaded to the './models' when you run the inference command. If the face model weights cannot be downloaded automatically, you can manually download the pretrained weights from [Huggingface](https://huggingface.co/FrancisRing/StableAnimator/tree/main/antelopev2).
-
 The overall file structure of this project should be organized as follows:
 ```
 StableAnimator/
@@ -117,31 +91,32 @@ StableAnimator/
 │   │   ├── pose_net.pth
 │   │   ├── face_encoder.pth
 │   │   └── unet.pth
-│   └── SVD
-│       ├── feature_extractor
-│       ├── image_encoder
-│       ├── scheduler
-│       ├── unet
-│       ├── vae
-│       ├── model_index.json
-│       ├── svd_xt.safetensors
-│       └── svd_xt_image_decoder.safetensors
-├── models
-│   └── antelopev2
-│       ├── 1k3d68.onnx
-│       ├── 2d106det.onnx
-│       ├── genderage.onnx
-│       ├── glintr100.onnx
-│       └── scrfd_10g_bnkps.onnx
+│   ├── SVD
+│   │   ├── feature_extractor
+│   │   ├── image_encoder
+│   │   ├── scheduler
+│   │   ├── unet
+│   │   ├── vae
+│   │   ├── model_index.json
+│   │   ├── svd_xt.safetensors
+│   │   └── svd_xt_image_decoder.safetensors
+│   ├── antelopev2
+│   │   ├── 1k3d68.onnx
+│   │   ├── 2d106det.onnx
+│   │   ├── genderage.onnx
+│   │   ├── glintr100.onnx
+│   │   └── scrfd_10g_bnkps.onnx
+│   └── inference.zip
+├── app.py
 ├── command_basic_infer.sh
 ├── inference_basic.py
 ├── requirement.txt 
 ```
 
 ### Evaluation Samples
-The evaluation samples presented in the paper can be downloaded from [OneDrive](https://1drv.ms/f/c/becb962aad1a1f95/EubdzCAI7BFLhJff2LrHkt8BC9mOiwJ5V67t-ypxRnCK4Q?e=ElEmcn) or `inference.zip` in [HuggingFace](https://huggingface.co/FrancisRing/StableAnimator/tree/main). Please download evaluation samples manually as follows:
+The evaluation samples presented in the paper can be downloaded from [OneDrive](https://1drv.ms/f/c/becb962aad1a1f95/EubdzCAI7BFLhJff2LrHkt8BC9mOiwJ5V67t-ypxRnCK4Q?e=ElEmcn) or `inference.zip` in checkpoints. Please download evaluation samples manually as follows:
 ```
-cd StableAnimator/
+cd StableAnimator
 mkdir inference
 ```
 All the evaluation samples should be organized as follows:
@@ -189,8 +164,11 @@ python face_mask_extraction.py --image_folder="path/StableAnimator/inference/you
 `path/StableAnimator/inference/your_case/target_images` contains multiple `.png` files. The obtained masks are saved in `path/StableAnimator/inference/your_case/faces`.
 
 ### Model inference
+```
+python app.py
+```
 
-A sample configuration for testing is provided as `command_basic_infer.sh`. You can also easily modify the various configurations according to your needs.
+Or a sample configuration for testing is provided as `command_basic_infer.sh`. You can also easily modify the various configurations according to your needs.
 
 ```
 bash command_basic_infer.sh
