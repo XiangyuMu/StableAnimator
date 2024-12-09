@@ -77,7 +77,6 @@ git lfs install
 git clone https://huggingface.co/FrancisRing/StableAnimator checkpoints
 ```
 All the weights should be organized in models as follows
-```
 The overall file structure of this project should be organized as follows:
 ```
 StableAnimator/
