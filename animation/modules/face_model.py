@@ -9,10 +9,10 @@ class FaceModel(nn.Module):
     def __init__(self):
         super(FaceModel, self).__init__()
         self.app = FaceAnalysis(
-            name='antelopev2', root='.', providers=['CUDAExecutionProvider', 'CPUExecutionProvider']
+            name='antelopev2', root='checkpoints', providers=['CUDAExecutionProvider', 'CPUExecutionProvider', ]
         )
         self.app.prepare(ctx_id=-1, det_size=(640, 640))
-        self.handler_ante = insightface.model_zoo.get_model('checkpoints/antelopev2/glintr100.onnx')
+        self.handler_ante = insightface.model_zoo.get_model('checkpoints/models/antelopev2/glintr100.onnx')
         self.handler_ante.prepare(ctx_id=-1)
 
         self.face_helper = FaceRestoreHelper(
