@@ -198,39 +198,35 @@ with gr.Blocks(theme=gr.themes.Soft()) as demo:
                 <a href="https://arxiv.org/abs/2411.17697">📜 arXiv </a>
             </div>
             <div style="text-align: center; font-weight: bold; color: red;">
-                ⚠️ 该演示仅供学术研究和体验使用。
-            </div>
-            <div style="text-align: center;">
-                一键包制作 by 十字鱼|
-                <a href="https://space.bilibili.com/893892">🌐 Bilibili</a> 
+                ⚠️ This demo is for academic research and experiential use only.
             </div>
             """)
     with gr.Row():
         with gr.Column():
             with gr.Group():
-                image_input = gr.Image(label="输入图像", type="filepath")
-                pose_input = gr.Textbox(label="姿势参考(目录路径)", placeholder="在此输入您姿势参考目录")
+                image_input = gr.Image(label="Reference Image", type="Please enter your reference image filepath here.")
+                pose_input = gr.Textbox(label="Driven Poses", placeholder="Please enter your driven pose directory here.")
             with gr.Group():
                 with gr.Row():
-                    width = gr.Number(label="宽度（仅支持512*512和576*1024）", value=512)
-                    height = gr.Number(label="高度（仅支持512*512和576*1024）", value=512)
+                    width = gr.Number(label="Width (supports only 512×512 and 576×1024)", value=512)
+                    height = gr.Number(label="Height (supports only 512×512 and 576×1024)", value=512)
                 with gr.Row():
-                    guidance_scale = gr.Number(label="指导尺度（推荐3.0）", value=3.0, step=0.1, precision=1)
-                    num_inference_steps = gr.Number(label="推理步数（推荐25）", value=20)
+                    guidance_scale = gr.Number(label="Guidance scale (recommended 3.0)", value=3.0, step=0.1, precision=1)
+                    num_inference_steps = gr.Number(label="Inference steps (recommended 25)", value=20)
                 with gr.Row():
-                    fps = gr.Number(label="帧率", value=15)
-                    frames_overlap = gr.Number(label="帧重叠（推荐4）", value=4)
+                    fps = gr.Number(label="FPS", value=8)
+                    frames_overlap = gr.Number(label="Overlap Frames (recommended 4)", value=4)
                 with gr.Row():
-                    tile_size = gr.Number(label="分块尺寸（推荐16）", value=16)
-                    noise_aug_strength = gr.Number(label="噪音增强强度（推荐0.02）", value=0.02, step=0.01, precision=2)
+                    tile_size = gr.Number(label="Tile Size (recommended 16)", value=16)
+                    noise_aug_strength = gr.Number(label="Noise Augmentation Strength (recommended 0.02)", value=0.02, step=0.01, precision=2)
                 with gr.Row():
-                    decode_chunk_size = gr.Number(label="解码块大小（推荐4）", value=4)
-                    seed = gr.Number(label="推理种子（输入正数，-1为随机）", value=-1)
-            generate_button = gr.Button("🎬 生成视频")
+                    decode_chunk_size = gr.Number(label="Decode Chunk Size (recommended 4 or 16)", value=4)
+                    seed = gr.Number(label="Random Seed (Enter a positive number, -1 for random)", value=-1)
+            generate_button = gr.Button("🎬 Generate The Video")
         with gr.Column():
-            video_output = gr.Video(label="生成视频")
+            video_output = gr.Video(label="Generate The Video")
             with gr.Row():
-                seed_text = gr.Number(label="视频生成种子", visible=False, interactive=False)
+                seed_text = gr.Number(label="Video Generation Seed", visible=False, interactive=False)
     gr.Examples([
         ["inference/case-1/reference.png","inference/case-1/poses",512,512],
         ["inference/case-2/reference.png","inference/case-2/poses",512,512],
@@ -338,15 +334,15 @@ if __name__ == "__main__":
     face_encoder.requires_grad_(False)
 
     total_vram_in_gb = torch.cuda.get_device_properties(0).total_memory / 1073741824
-    print(f'\033[32mCUDA版本：{torch.version.cuda}\033[0m')
-    print(f'\033[32mPytorch版本：{torch.__version__}\033[0m')
-    print(f'\033[32m显卡型号：{torch.cuda.get_device_name()}\033[0m')
-    print(f'\033[32m显存大小：{total_vram_in_gb:.2f}GB\033[0m')
+    print(f'\033[32mCUDA version：{torch.version.cuda}\033[0m')
+    print(f'\033[32mPytorch version：{torch.__version__}\033[0m')
+    print(f'\033[32mGPU Type：{torch.cuda.get_device_name()}\033[0m')
+    print(f'\033[32mGPU Memory：{total_vram_in_gb:.2f}GB\033[0m')
     if torch.cuda.get_device_capability()[0] >= 8:
-        print(f'\033[32m支持BF16，使用BF16\033[0m')
+        print(f'\033[32mSupports BF16, use BF16\033[0m')
         dtype = torch.bfloat16
     else:
-        print(f'\033[32m不支持BF16，使用FP16。不推荐使用5B模型\033[0m')
+        print(f'\033[32mBF16 is not supported, use FP16. The 5B model is not recommended\033[0m')
         dtype = torch.float16
     device = "cuda" if torch.cuda.is_available() else "cpu"
     demo.queue()
