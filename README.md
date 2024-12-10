@@ -136,7 +136,6 @@ inference/
 │   ├── faces
 │   └── reference.png
 ```
-It is worth noting that the data pre-processing codes (human face mask extraction) will be released very soon. Stay tuned! 
 
 ### Human Skeleton Extraction
 We leverage the pre-trained DWPose to extract the human skeletons. In the initialization of DWPose, the pretrained weights should be configured in `/DWPose/dwpose_utils/wholebody.py`:
