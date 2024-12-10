@@ -204,7 +204,7 @@ with gr.Blocks(theme=gr.themes.Soft()) as demo:
     with gr.Row():
         with gr.Column():
             with gr.Group():
-                image_input = gr.Image(label="Reference Image", type="Please enter your reference image filepath here.")
+                image_input = gr.Image(label="Reference Image", type="filepath")
                 pose_input = gr.Textbox(label="Driven Poses", placeholder="Please enter your driven pose directory here.")
             with gr.Group():
                 with gr.Row():
