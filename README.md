@@ -113,6 +113,24 @@ StableAnimator/
 ├── inference_basic.py
 ├── requirement.txt 
 ```
+<b>Notably, there is a bug in the automatic download process of Antelopev2, with the error details described as follows:</b>
+```
+Traceback (most recent call last):
+  File "/home/StableAnimator/inference_normal.py", line 243, in <module>
+    face_model = FaceModel()
+  File "/home/StableAnimator/animation/modules/face_model.py", line 11, in __init__
+    self.app = FaceAnalysis(
+  File "/opt/conda/lib/python3.10/site-packages/insightface/app/face_analysis.py", line 43, in __init__
+    assert 'detection' in self.models
+AssertionError
+```
+This issue is related to the incorrect path of Antelopev2, which is automatically downloaded into the `models/antelopev2/antelopev2` directory. The correct path of Antelopev2 should be `models/antelopev2`. You can run the following commands to tackle this issue:
+```
+cd StableAnimator
+mv ./models/antelopev2/antelopev2 ./models/tmp
+rm -rf ./models/antelopev2
+mv ./models/tmp ./models/antelopev2
+```
 
 ### Evaluation Samples
 The evaluation samples presented in the paper can be downloaded from [OneDrive](https://1drv.ms/f/c/becb962aad1a1f95/EubdzCAI7BFLhJff2LrHkt8BC9mOiwJ5V67t-ypxRnCK4Q?e=ElEmcn) or `inference.zip` in checkpoints. Please download evaluation samples manually as follows:
