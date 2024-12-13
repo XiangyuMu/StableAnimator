@@ -136,7 +136,7 @@ if __name__ == '__main__':
     dataset_name = args.name
 
     image_root = os.path.join(args.root_path, dataset_name)
-    for idx in range(start, end):
+    for idx in range(start, end+1):
         subfolder = str(idx).zfill(5)
         subfolder_path = os.path.join(image_root, subfolder)
         images_subfolder_path = os.path.join(subfolder_path, "images")
