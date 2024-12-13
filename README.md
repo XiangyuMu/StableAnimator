@@ -171,7 +171,7 @@ It is worth noting that the .png files in the target image folder are named in t
 
 If you only have the target MP4 file (target.mp4), we recommend you to use `ffmpeg` to convert the MP4 file to multiple frames (.png files) without any quality loss.
 ```
-ffmpeg -i target.mp4 -q:v 1 path/test/target_images/frame_%d.png
+ffmpeg -i target.mp4 -q:v 1 -start_number 0 path/test/target_images/frame_%d.png
 ```
 The obtained frames are saved in `path/test/target_images`.
 
@@ -269,7 +269,7 @@ path/StableAnimator/animation_data/rec/00006
 ```
 If you only have raw videos, you can leverage `ffmpeg` to extract frames from raw videos and store them in the subfolder `images`.
 ```
-ffmpeg -i raw_video_1.mp4 -q:v 1 path/StableAnimator/animation_data/rec/00001/images/frame_%d.png
+ffmpeg -i raw_video_1.mp4 -q:v 1 -start_number 0 path/StableAnimator/animation_data/rec/00001/images/frame_%d.png
 ```
 The obtained frames are saved in `path/StableAnimator/animation_data/rec/00001/images`.
 
