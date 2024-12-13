@@ -40,6 +40,7 @@ StableAnimator: High-Quality Identity-Preserving Human Image Animation
 Current diffusion models for human image animation struggle to ensure identity (ID) consistency. This paper presents StableAnimator, <b>the first end-to-end ID-preserving video diffusion framework, which synthesizes high-quality videos without any post-processing, conditioned on a reference image and a sequence of poses.</b> Building upon a video diffusion model, StableAnimator contains carefully designed modules for both training and inference striving for identity consistency. In particular, StableAnimator begins by computing image and face embeddings with off-the-shelf extractors, respectively and face embeddings are further refined by interacting with image embeddings using a global content-aware Face Encoder. Then, StableAnimator introduces a novel distribution-aware ID Adapter that prevents interference caused by temporal layers while preserving ID via alignment. During inference, we propose a novel Hamilton-Jacobi-Bellman (HJB) equation-based optimization to further enhance the face quality. We demonstrate that solving the HJB equation can be integrated into the diffusion denoising process, and the resulting solution constrains the denoising path and thus benefits ID preservation. Experiments on multiple benchmarks show the effectiveness of StableAnimator both qualitatively and quantitatively.
 
 ## News
+* `[2024-12-13]`:🔥 The training code and training tutorial are released! You can train/finetune your own StableAnimator on your own collected datasets! Other codes will be released very soon. Stay tuned!
 * `[2024-12-10]`:🔥 The gradio interface is released! Many thanks to [@gluttony-10](https://space.bilibili.com/893892) for his contribution! Other codes will be released very soon. Stay tuned!
 * `[2024-12-6]`:🔥 All data preprocessing codes (human skeleton extraction and human face mask extraction) are released! The training code and detailed training tutorial will be released before 2024.12.13. Stay tuned!
 * `[2024-12-4]`:🔥 We are thrilled to release an interesting dance demo (🔥🔥APT Dance🔥🔥)! The generated video can be seen on [YouTube](https://www.youtube.com/watch?v=KNPoAsWr_sk) and [Bilibili](https://www.bilibili.com/video/BV1KczXYhER7).
@@ -52,8 +53,8 @@ Current diffusion models for human image animation struggle to ensure identity (
 - [x] Evaluation Samples
 - [x] Data Pre-Processing Code (Skeleton Extraction)
 - [x] Data Pre-Processing Code (Human Face Mask Extraction)
+- [x] Training Code
 - [ ] Evaluation Dataset
-- [ ] Training Code
 - [ ] StableAnimator-pro
 - [ ] Inference Code with HJB-based Face Optimization
 
@@ -202,6 +203,151 @@ Additionally, you can also run the following command to launch a Gradio interfac
 ```
 python app.py
 ```
+
+### Model Training
+For the training dataset, it has to be organized as follows:
+
+```
+animation_data/
+├── rec
+│   │  ├──00001
+│   │  │  ├──images
+│   │  │  │  ├──frame_0.png
+│   │  │  │  ├──frame_1.png
+│   │  │  │  ├──frame_2.png
+│   │  │  │  └──...
+│   │  │  ├──faces
+│   │  │  │  ├──frame_0.png
+│   │  │  │  ├──frame_1.png
+│   │  │  │  ├──frame_2.png
+│   │  │  │  └──...
+│   │  │  └──poses
+│   │  │  │  ├──frame_0.png
+│   │  │  │  ├──frame_1.png
+│   │  │  │  ├──frame_2.png
+│   │  │  │  └──...
+│   │  ├──00002
+│   │  │  ├──images
+│   │  │  ├──faces
+│   │  │  └──poses
+│   │  ├──00003
+│   │  │  ├──images
+│   │  │  ├──faces
+│   │  │  └──poses
+│   │  └──...
+├── vec
+│   │  ├──00001
+│   │  │  ├──images
+│   │  │  ├──faces
+│   │  │  └──poses
+│   │  ├──00002
+│   │  │  ├──images
+│   │  │  ├──faces
+│   │  │  └──poses
+│   │  ├──00003
+│   │  │  ├──images
+│   │  │  ├──faces
+│   │  │  └──poses
+│   │  └──...
+├── video_rec_path.txt
+└── video_vec_path.txt
+```
+StableAnimator is trained on mixed-resolution videos, with 512x512 videos stored in `animation_data/rec` and 576x1024 videos stored in `animation_data/vec`. Each folder in `animation_data/rec` or `animation_data/vec` contains three subfolders which contains multiple `.png` image files. 
+All `.png` image files are named in the format `frame_i.png`, such as `frame_0.png`, `frame_1.png`, and so on.
+`00001`, `00002`, `00003` indicate individual video information.
+In terms of three subfolders, `images`, `faces`, and `poses` store RGB frames, corresponding human face masks, and corresponding human skeleton poses, respectively.
+`video_rec_path.txt` and `video_vec_path.txt` record folder paths of `animation_data/rec` and `animation_data/vec`, respectively.
+For example, the content of `video_rec_path.txt` is shown as follows:
+```
+path/StableAnimator/animation_data/rec/00001
+path/StableAnimator/animation_data/rec/00002
+path/StableAnimator/animation_data/rec/00003
+path/StableAnimator/animation_data/rec/00004
+path/StableAnimator/animation_data/rec/00005
+path/StableAnimator/animation_data/rec/00006
+...
+```
+If you only have raw videos, you can leverage `ffmpeg` to extract frames from raw videos and store them in the subfolder `images`.
+```
+ffmpeg -i raw_video_1.mp4 -q:v 1 path/StableAnimator/animation_data/rec/00001/images/frame_%d.png
+```
+The obtained frames are saved in `path/StableAnimator/animation_data/rec/00001/images`.
+
+For extracting the human skeleton poses, you can run the following command:
+```
+python DWPose/training_skeleton_extraction.py --root_path="path/StableAnimator/animation_data" --name="rec" --start=1 --end=500 
+```
+`--root_path` and `--name` refer to the root path of training datasets and the name of the dataset.
+`--start` and `--end`  specify the starting and ending indices of the selected training dataset. For example, `--name="rec" --start=1 --end=500` indicates that the skeleton extraction will start at `path/StableAnimator/animation_data/rec/00001` and end at `path/StableAnimator/animation_data/rec/00500`.
+
+For extraction details of corresponding face masks, please refer to the Human Face Mask Extraction section.
+When your dataset is organized exactly as outlined above, you can easily train your StableAnimator by running the following command:
+```
+bash command_train.sh
+```
+For the parameter details of `command_train.sh`, `CUDA_VISIBLE_DEVICES` refers to gpu devices. In my setting, I use 4 NVIDIA A100 80G to train StableAnimator (`CUDA_VISIBLE_DEVICES=3,2,1,0`).
+`--pretrained_model_name_or_path` and `--output_dir` refer to the pretrained SVD path and the checkpoint saved path of the trained StableAnimator.
+`--data_root_path`, `--rec_data_path`, and `--vec_data_path` are the root path of datasets, the path of `video_rec_path.txt`, and the path of `video_vec_path.txt`, respectively.
+`validation_image_folder`, `validation_control_folder`, and `validation_image` are paths of validation ground truths, validation driven skeleton poses, and the validation reference image.
+`--sample_n_frames` is the number of frames that StableAnimator processes in a single batch. 
+`--num_train_epochs` is the training epoch number. It is worth noting that the default number of training epochs is set to infinite. You can manually terminate the training process once you observe that your StableAnimator has reached its peak performance.
+The overall file structure of StableAnimator at training is shown as follows:
+```
+StableAnimator/
+├── DWPose
+├── animation
+├── animation_data
+│   ├── rec
+│   ├── vec
+│   ├── video_rec_path.txt
+│   └── video_vec_path.txt
+├── validation
+│   ├── ground_truth
+│   │   ├── frame_0.png
+│   │   ├── frame_1.png
+│   │   ├── frame_2.png
+│   │   └── ...
+│   ├── poses
+│   │   ├── frame_0.png
+│   │   ├── frame_1.png
+│   │   ├── frame_2.png
+│   │   └── ...
+│   └── reference.png
+├── checkpoints
+│   ├── DWPose
+│   │   ├── dw-ll_ucoco_384.onnx
+│   │   └── yolox_l.onnx
+│   ├── Animation
+│   │   ├── pose_net.pth
+│   │   ├── face_encoder.pth
+│   │   └── unet.pth
+│   ├── SVD
+│   │   ├── feature_extractor
+│   │   ├── image_encoder
+│   │   ├── scheduler
+│   │   ├── unet
+│   │   ├── vae
+│   │   ├── model_index.json
+│   │   ├── svd_xt.safetensors
+│   │   └── svd_xt_image_decoder.safetensors
+│   └── inference.zip
+├── models
+│   │   └── antelopev2
+│   │       ├── 1k3d68.onnx
+│   │       ├── 2d106det.onnx
+│   │       ├── genderage.onnx
+│   │       ├── glintr100.onnx
+│   │       └── scrfd_10g_bnkps.onnx
+├── app.py
+├── command_basic_infer.sh
+├── inference_basic.py
+├── train.py
+├── command_train.sh
+└── requirement.txt 
+```
+<b>It is worth noting that training StableAnimator requires approximately 70GB of VRAM due to the mixed-resolution (512x512 and 576x1024) training pipeline. 
+However, if you train StableAnimator exclusively on 512x512 videos, the VRAM requirement is reduced to approximately 40GB.</b>
+Additionally, The backgrounds of the selected training videos should remain static, as this helps the diffusion model calculate accurate reconstruction loss.
 
 ### VRAM requirement and Runtime
 
