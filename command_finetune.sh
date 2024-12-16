@@ -1,9 +1,9 @@
 CUDA_VISIBLE_DEVICES=3,2,1,0 accelerate launch train.py \
  --pretrained_model_name_or_path="path/checkpoints/SVD/stable-video-diffusion-img2vid-xt" \
  --finetune_mode=True \
- --posenet_model_name_or_path="path/checkpoints/Animation/pose_net.pth" \
- --face_encoder_model_name_or_path="path/checkpoints/Animation/face_encoder.pth" \
- --unet_model_name_or_path="path/checkpoints/Animation/unet.pth" \
+ --posenet_model_finetune_path="path/checkpoints/Animation/pose_net.pth" \
+ --face_encoder_finetune_path="path/checkpoints/Animation/face_encoder.pth" \
+ --unet_model_finetune_path="path/checkpoints/Animation/unet.pth" \
  --output_dir="path/checkpoints/Animation" \
  --data_root_path="path/animation_data" \
  --rec_data_path="path/animation_data/video_rec_path.txt" \
