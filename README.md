@@ -354,7 +354,7 @@ Regarding finetuning StableAnimator, you can run the following command:
 ```
 bash command_finetune.sh
 ```
-"posenet_model_name_or_path", "face_encoder_model_name_or_path", and "unet_model_name_or_path" in `command_finetune.sh` refer to paths of pretrained StableAnimator weights.
+`posenet_model_finetune_path`, `face_encoder_finetune_path`, and `unet_model_finetune_path` in `command_finetune.sh` refer to paths of pretrained StableAnimator weights.
 
 ### VRAM requirement and Runtime
 
