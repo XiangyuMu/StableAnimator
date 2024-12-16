@@ -350,6 +350,12 @@ StableAnimator/
 However, if you train StableAnimator exclusively on 512x512 videos, the VRAM requirement is reduced to approximately 40GB.</b>
 Additionally, The backgrounds of the selected training videos should remain static, as this helps the diffusion model calculate accurate reconstruction loss.
 
+Regarding finetuning StableAnimator, you can run the following command:
+```
+bash command_finetune.sh
+```
+"posenet_model_name_or_path", "face_encoder_model_name_or_path", and "unet_model_name_or_path" in `command_finetune.sh` refer to paths of pretrained StableAnimator weights.
+
 ### VRAM requirement and Runtime
 
 For the 15s demo video (512x512, fps=30), the 16-frame basic model requires 8GB VRAM and finishes in 5 minutes on a 4090 GPU.
