@@ -781,6 +781,30 @@ def parse_args():
         help="Path to the vec data path",
     )
 
+    parser.add_argument(
+        "--finetune_mode",
+        type=bool,
+        default=False,
+        help="Enable or disable the finetune mode (True/False).",
+    )
+    parser.add_argument(
+        "--posenet_model_finetune_path",
+        type=str,
+        default=None,
+        help="Path to the pretrained posenet model",
+    )
+    parser.add_argument(
+        "--face_encoder_finetune_path",
+        type=str,
+        default=None,
+        help="Path to the pretrained face encoder",
+    )
+    parser.add_argument(
+        "--unet_model_finetune_path",
+        type=str,
+        default=None,
+        help="Path to the pretrained unet model",
+    )
 
     args = parser.parse_args()
     env_local_rank = int(os.environ.get("LOCAL_RANK", -1))
@@ -945,6 +969,29 @@ def main():
             else:
                 attn_procs[name] = XFormersAttnProcessor()
     unet.set_attn_processor(attn_procs)
+
+    # triggering the finetune mode
+    if args.finetune_mode is True and args.posenet_model_finetune_path is not None and args.face_encoder_finetune_path is not None and args.unet_model_finetune_path is not None:
+        print("Loading existing posenet weights, face_encoder weights and unet weights.")
+        if args.posenet_model_finetune_path.endswith(".pth"):
+            pose_net_state_dict = torch.load(args.posenet_model_finetune_path, map_location="cpu")
+            pose_net.load_state_dict(pose_net_state_dict, strict=True)
+        else:
+            print("posenet weights loading fail")
+            print(1/0)
+        if args.face_encoder_finetune_path.endswith(".pth"):
+            face_encoder_state_dict = torch.load(args.face_encoder_finetune_path, map_location="cpu")
+            face_encoder.load_state_dict(face_encoder_state_dict, strict=True)
+        else:
+            print("face_encoder weights loading fail")
+            print(1/0)
+        if args.unet_model_finetune_path.endswith(".pth"):
+            unet_state_dict = torch.load(args.unet_model_finetune_path, map_location="cpu")
+            unet.load_state_dict(unet_state_dict, strict=True)
+        else:
+            print("unet weights loading fail")
+            print(1/0)
+
 
     vae_scale_factor = 2 ** (len(vae.config.block_out_channels) - 1)
     image_processor = VaeImageProcessor(vae_scale_factor=vae_scale_factor)
