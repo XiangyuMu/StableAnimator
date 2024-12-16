@@ -205,6 +205,7 @@ python app.py
 ```
 
 ### Model Training
+<b>🔥It’s worth noting that if you’re looking to train a conditioned Stable Video Diffusion (SVD) model, this training tutorial will also be helpful.🔥</b>
 For the training dataset, it has to be organized as follows:
 
 ```
