@@ -139,8 +139,8 @@ class LargeScaleAnimationVideos(Dataset):
         self.face_helper.clean_all()
         reference_frame_face = cv2.imread(reference_frame_path)
         reference_frame_face = cv2.resize(reference_frame_face, (self.width, self.height))
-        reference_frame_face_bgr = cv2.cvtColor(reference_frame_face, cv2.COLOR_RGB2BGR)
-        reference_frame_face_info = self.app.get(reference_frame_face_bgr)
+        # reference_frame_face_bgr = cv2.cvtColor(reference_frame_face, cv2.COLOR_RGB2BGR)
+        reference_frame_face_info = self.app.get(reference_frame_face)
         if len(reference_frame_face_info) > 0:
             reference_frame_face_info = sorted(reference_frame_face_info, key=lambda x: (x['bbox'][2] - x['bbox'][0]) * (x['bbox'][3] - x['bbox'][1]))[-1]
             reference_frame_id_ante_embedding = reference_frame_face_info['embedding']
@@ -148,7 +148,7 @@ class LargeScaleAnimationVideos(Dataset):
             reference_frame_id_ante_embedding = None
 
         if reference_frame_id_ante_embedding is None:
-            self.face_helper.read_image(reference_frame_face_bgr)
+            self.face_helper.read_image(reference_frame_face)
             self.face_helper.get_face_landmarks_5(only_center_face=True)
             self.face_helper.align_warp_face()
 
