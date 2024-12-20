@@ -1635,8 +1635,8 @@ def log_validation(
 
             face_helper.clean_all()
             validation_face = cv2.imread(validation_image_path)
-            validation_image_bgr = cv2.cvtColor(validation_face, cv2.COLOR_RGB2BGR)
-            validation_image_face_info = app.get(validation_image_bgr)
+            # validation_image_bgr = cv2.cvtColor(validation_face, cv2.COLOR_RGB2BGR)
+            validation_image_face_info = app.get(validation_face)
             if len(validation_image_face_info) > 0:
                 validation_image_face_info = sorted(validation_image_face_info, key=lambda x: (x['bbox'][2] - x['bbox'][0]) * (x['bbox'][3] - x['bbox'][1]))[-1]
                 validation_image_id_ante_embedding = validation_image_face_info['embedding']
@@ -1644,7 +1644,7 @@ def log_validation(
                 validation_image_id_ante_embedding = None
 
             if validation_image_id_ante_embedding is None:
-                face_helper.read_image(validation_image_bgr)
+                face_helper.read_image(validation_face)
                 face_helper.get_face_landmarks_5(only_center_face=True)
                 face_helper.align_warp_face()
 
