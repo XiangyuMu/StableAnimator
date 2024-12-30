@@ -350,6 +350,12 @@ StableAnimator/
 However, if you train StableAnimator exclusively on 512x512 videos, the VRAM requirement is reduced to approximately 40GB.</b>
 Additionally, The backgrounds of the selected training videos should remain static, as this helps the diffusion model calculate accurate reconstruction loss.
 
+If you want to train StableAnimator on a single resolution, you can use the following command:
+```
+bash command_train_single.sh
+```
+You can customize the resolution by modifying `--dataset_width` and `--dataset_height`, both of which default to 512.
+
 Regarding finetuning StableAnimator, you can run the following command:
 ```
 bash command_finetune.sh
