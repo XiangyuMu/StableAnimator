@@ -1,0 +1,48 @@
+# Python-specific
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Project-specific
+*.zip
+*.pth
+*.pt
+*.ckpt
+*.log
+.DS_Store
+*.safetensors
+*.bin
+
+# Large data files
+# animation_data.zip is already covered by *.zip above
+
+# images
+*.jpg
+*.png
+*.jpeg
+
+# folders
+checkpoints/
+inference/
+models/
+wandb/
+hiera/
+dataset/
+

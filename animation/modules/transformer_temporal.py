@@ -345,6 +345,9 @@ class TransformerSpatioTemporalModel(nn.Module):
         emb = self.time_pos_embed(t_emb)
         emb = emb[:, None, :]
 
+        # print('hidden_states_att',hidden_states.shape)  
+        # print('encoder_hidden_states_att',encoder_hidden_states.shape)
+
         # 2. Blocks
         for block, temporal_block in zip(self.transformer_blocks, self.temporal_transformer_blocks):
             # print(hidden_states.dtype)  # torch.float16

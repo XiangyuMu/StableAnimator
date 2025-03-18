@@ -88,7 +88,9 @@ class LargeScaleAnimationVideos(Dataset):
         warnings.filterwarnings('ignore', category=FutureWarning)
 
         frames_path = osp.join(self.video_files[idx], "images")
+        heads_path = osp.join(self.video_files[idx], "heads_white")
         poses_path = osp.join(self.video_files[idx], "poses")
+        clothes_path = osp.join(self.video_files[idx], "clothes_white_complete")
         face_masks_path = osp.join(self.video_files[idx], "faces")
         video_length = self.frame_count(frames_path)
         frames_list = self.find_frames_list(frames_path)
@@ -127,14 +129,22 @@ class LargeScaleAnimationVideos(Dataset):
                 print(1 / 0)
 
         pose_pil_image_list = []
+        clothes_pil_image_list = []
         tgt_pil_image_list = []
         tgt_face_masks_list = []
 
-        reference_frame_path = osp.join(frames_path, frames_list[reference_frame_idx])
+        reference_frame_path = osp.join(heads_path, frames_list[reference_frame_idx])
         reference_pil_image = Image.open(reference_frame_path).convert('RGB')
         reference_pil_image = reference_pil_image.resize((self.width, self.height))
         reference_pil_image = torch.from_numpy(np.array(reference_pil_image)).float()
         reference_pil_image = reference_pil_image / 127.5 - 1
+        
+        reference_cloth_path = osp.join(clothes_path, frames_list[reference_frame_idx])
+        reference_cloth_pil_image = Image.open(reference_cloth_path).convert('RGB')
+        reference_cloth_pil_image = reference_cloth_pil_image.resize((self.width, self.height))
+        reference_cloth_pil_image = torch.from_numpy(np.array(reference_cloth_pil_image)).float()
+        reference_cloth_pil_image = reference_cloth_pil_image / 127.5 - 1
+
 
         self.face_helper.clean_all()
         reference_frame_face = cv2.imread(reference_frame_path)
@@ -164,7 +174,9 @@ class LargeScaleAnimationVideos(Dataset):
             pose_name = os.path.splitext(os.path.basename(tgt_img_path))[0]
             pose_name = pose_name + '.png'
             face_name = pose_name
+            cloth_name = pose_name
             pose_path = osp.join(poses_path, pose_name)
+            cloth_path = osp.join(clothes_path, cloth_name)
             face_mask_path = osp.join(face_masks_path, face_name)
 
             try:
@@ -199,11 +211,24 @@ class LargeScaleAnimationVideos(Dataset):
                 pose = torch.zeros_like(reference_pil_image)
             pose_pil_image_list.append(pose)
 
+            try:
+                clothes = Image.open(cloth_path).convert('RGB')
+                clothes = clothes.resize((self.width, self.height))
+                clothes = torch.from_numpy(np.array(clothes)).float()
+                clothes = clothes / 127.5 - 1
+            except Exception as e:
+                print(f"Fail loading the poses: {cloth_path}")
+                clothes = torch.zeros_like(reference_pil_image)
+            clothes_pil_image_list.append(clothes)
+
         pose_pil_image_list = torch.stack(pose_pil_image_list, dim=0)
+        clothes_pil_image_list = torch.stack(clothes_pil_image_list, dim=0)
         tgt_pil_image_list = torch.stack(tgt_pil_image_list, dim=0)
         tgt_pil_image_list = rearrange(tgt_pil_image_list, "f h w c -> f c h w")
         reference_pil_image = rearrange(reference_pil_image, "h w c -> c h w")
+        reference_cloth_pil_image = rearrange(reference_cloth_pil_image, "h w c -> c h w")
         pose_pil_image_list = rearrange(pose_pil_image_list, "f h w c -> f c h w")
+        clothes_pil_image_list = rearrange(clothes_pil_image_list, "f h w c -> f c h w")
 
         tgt_face_masks_list = torch.stack(tgt_face_masks_list, dim=0)
         tgt_face_masks_list = torch.unsqueeze(tgt_face_masks_list, dim=-1)
@@ -212,7 +237,9 @@ class LargeScaleAnimationVideos(Dataset):
         sample = dict(
             pixel_values=tgt_pil_image_list,
             reference_image=reference_pil_image,
+            reference_cloth_image=reference_cloth_pil_image,
             pose_pixels=pose_pil_image_list,
+            clothes_pixels=clothes_pil_image_list,
             faceid_embeds=reference_frame_id_ante_embedding,
             tgt_face_masks=tgt_face_masks_list,
         )

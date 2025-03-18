@@ -1,0 +1,2 @@
+python DWPose/training_skeleton_extraction_wohead.py --root_path="/data/muxiangyu/pythonPrograms/StableAnimator/animation_data" --name="" --start=1 --end=600
+python DWPose/training_skeleton_extraction_onlyhead.py --root_path="/data/muxiangyu/pythonPrograms/StableAnimator/animation_data" --name="" --start=1 --end=600

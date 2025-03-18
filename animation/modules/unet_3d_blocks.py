@@ -1303,13 +1303,15 @@ class CrossAttnDownBlockSpatioTemporal(nn.Module):
                     image_only_indicator,
                     **ckpt_kwargs,
                 )
-
+                # print("hidden_states", hidden_states.shape)
+                # print("encoder_hidden_states", encoder_hidden_states.shape)
                 hidden_states = attn(
                     hidden_states,
                     encoder_hidden_states=encoder_hidden_states,
                     image_only_indicator=image_only_indicator,
                     return_dict=False,
                 )[0]
+
             else:
                 hidden_states = resnet(
                     hidden_states,

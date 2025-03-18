@@ -16,6 +16,7 @@ from diffusers.utils.torch_utils import is_compiled_module, randn_tensor
 
 from animation.modules.attention_processor import AnimationAttnProcessor, AnimationIDAttnProcessor
 from einops import rearrange
+import torch.nn as nn
 
 logger = logging.get_logger(__name__)  # pylint: disable=invalid-name
 
@@ -87,6 +88,7 @@ class InferenceAnimationPipeline(DiffusionPipeline):
             scheduler,
             feature_extractor,
             pose_net,
+            cloth_encoder,
             face_encoder,
     ):
         super().__init__()
@@ -98,6 +100,7 @@ class InferenceAnimationPipeline(DiffusionPipeline):
             scheduler=scheduler,
             feature_extractor=feature_extractor,
             pose_net=pose_net,
+            cloth_encoder=cloth_encoder,
             face_encoder=face_encoder,
         )
         self.vae_scale_factor = 2 ** (len(self.vae.config.block_out_channels) - 1)
@@ -199,7 +202,41 @@ class InferenceAnimationPipeline(DiffusionPipeline):
             do_classifier_free_guidance: bool,
     ):
         image = image.to(device=device, dtype=self.vae.dtype)
-        image_latents = self.vae.encode(image).latent_dist.mode()
+         # 处理5D输入 (batch, frames, channels, height, width)
+        if len(image.shape) == 5:
+        #     video_length = image.shape[1]
+        #     # 重排维度并编码
+        #     image = rearrange(image, "b f c h w -> (b f) c h w")
+        #     image_latents = self.vae.encode(image).latent_dist.mode()
+        #     # 恢复维度结构
+        #     image_latents = rearrange(image_latents, "(b f) c h w -> b f c h w", f=video_length)
+            b, f, c, h, w = image.shape
+            latents_list = []
+            
+            # 每批处理4帧
+            batch_size = 8
+            for i in range(0, f, batch_size):
+                # 获取当前批次的帧
+                batch_frames = image[:, i:i+batch_size].reshape(-1, c, h, w)  # [batch_size, 3, h, w]
+                
+                # 清理显存
+                torch.cuda.empty_cache()
+                
+                # 编码当前批次
+                batch_latents = self.vae.encode(batch_frames).latent_dist.mode()
+                
+                latents_list.append(batch_latents)
+            
+            # 合并所有latents
+            image_latents = torch.cat(latents_list, dim=0)
+            # 重塑为原始维度结构 [b, f, latent_channels, latent_h, latent_w]
+            image_latents = image_latents.unsqueeze(0)
+            
+            # 清理中间变量
+            del latents_list, batch_latents
+            torch.cuda.empty_cache()
+        else:
+            image_latents = self.vae.encode(image).latent_dist.mode()
 
         if do_classifier_free_guidance:
             negative_image_latents = torch.zeros_like(image_latents)
@@ -210,7 +247,7 @@ class InferenceAnimationPipeline(DiffusionPipeline):
             image_latents = torch.cat([negative_image_latents, image_latents])
 
         # duplicate image_latents for each generation per prompt, using mps friendly method
-        image_latents = image_latents.repeat(num_videos_per_prompt, 1, 1, 1)
+        # image_latents = image_latents.repeat(num_videos_per_prompt, 1, 1, 1)
 
         return image_latents
 
@@ -364,6 +401,7 @@ class InferenceAnimationPipeline(DiffusionPipeline):
             self,
             image: Union[PIL.Image.Image, List[PIL.Image.Image], torch.FloatTensor],
             image_pose: Union[torch.FloatTensor],
+            image_clothes: Union[torch.FloatTensor],
             height: int = 576,
             width: int = 1024,
             num_frames: Optional[int] = None,
@@ -524,7 +562,19 @@ class InferenceAnimationPipeline(DiffusionPipeline):
         image = self.image_processor.preprocess(image, height=height, width=width).to(device)
         noise = randn_tensor(image.shape, generator=generator, device=device, dtype=image.dtype)
         image = image + noise_aug_strength * noise
-
+        # clothes_pil_image_list = []
+        # for clothes in image_clothes:
+        #     # 使用与reference image相同的预处理
+        #     clothes = self.image_processor.preprocess(clothes, height=height, width=width).to(device)
+        #     clothes = clothes.squeeze(0)
+        #     clothes_pil_image_list.append(clothes)
+        # # stack后得到 [num_frames, 3, 512, 512]
+        # clothes_tensor = torch.stack(clothes_pil_image_list, dim=0)
+        # # 添加batch维度 [1, num_frames, 3, 512, 512]
+        # clothes_tensor = clothes_tensor.unsqueeze(0)
+        # # 添加noise，与reference image处理保持一致
+        # noise = randn_tensor(clothes_tensor.shape, generator=generator, device=device, dtype=clothes_tensor.dtype)
+        # clothes_tensor = clothes_tensor + noise_aug_strength * noise
         needs_upcasting = (self.vae.dtype == torch.float16 or self.vae.dtype == torch.bfloat16) and self.vae.config.force_upcast
         if needs_upcasting:
             self_vae_dtype = self.vae.dtype
@@ -537,7 +587,15 @@ class InferenceAnimationPipeline(DiffusionPipeline):
             do_classifier_free_guidance=do_classifier_free_guidance,
         )
         image_latents = image_latents.to(image_embeddings.dtype)
-
+         # 使用相同的_encode_vae_image方法处理clothes
+        # clothes_latents = self._encode_vae_image(
+        #     clothes_tensor,
+        #     device=device,
+        #     num_videos_per_prompt=num_videos_per_prompt,
+        #     do_classifier_free_guidance=do_classifier_free_guidance,
+        # )
+        # # 调整数据类型
+        # clothes_latents = clothes_latents.to(image_embeddings.dtype)
         if needs_upcasting:
             self.vae.to(dtype=self_vae_dtype)
         # self.vae.cpu()
@@ -602,11 +660,19 @@ class InferenceAnimationPipeline(DiffusionPipeline):
         pose_pil_image_list = torch.stack(pose_pil_image_list, dim=0)
         pose_pil_image_list = rearrange(pose_pil_image_list, "f h w c -> f c h w")
 
+        clothes_pil_image_list = []
+        for clothes in image_clothes:
+            clothes = torch.from_numpy(np.array(clothes)).float()
+            clothes = clothes / 127.5 - 1
+            clothes_pil_image_list.append(clothes)
+        clothes_pil_image_list = torch.stack(clothes_pil_image_list, dim=0)
+        clothes_pil_image_list = rearrange(clothes_pil_image_list, "f h w c -> f c h w")
 
         # print(indices)  # [[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15]]
         # print(pose_pil_image_list.size())  # [16, 3, 512, 512]
 
         self.pose_net.to(device)
+        self.cloth_encoder.to(device)
         self.unet.to(device)
 
         with torch.cuda.device(device):
@@ -617,7 +683,13 @@ class InferenceAnimationPipeline(DiffusionPipeline):
                 # expand the latents if we are doing classifier free guidance
                 latent_model_input = torch.cat([latents] * 2) if do_classifier_free_guidance else latents
                 latent_model_input = self.scheduler.scale_model_input(latent_model_input, t)
-
+                # 先融合reference image和clothes latents
+                # combined_latents = torch.cat([image_latents, clothes_latents], dim=2)
+                # 添加融合层，将通道数调整为与image_latents相同
+                # target_channels = image_latents.shape[2]
+                # if not hasattr(self, 'fusion_layer'):
+                    # self.fusion_layer = nn.Conv2d(combined_latents.shape[2], target_channels, 1, dtype=combined_latents.dtype).to(device)
+                # combined_latents = self.fusion_layer(combined_latents.flatten(0, 1)).unflatten(0, combined_latents.shape[:2])
                 # Concatenate image_latents over channels dimension
                 latent_model_input = torch.cat([latent_model_input, image_latents], dim=2)
 
@@ -629,12 +701,14 @@ class InferenceAnimationPipeline(DiffusionPipeline):
                 for idx in indices:
                     # classification-free inference
                     pose_latents = self.pose_net(pose_pil_image_list[idx].to(device=device, dtype=latent_model_input.dtype))
+                    clothes_latents = self.cloth_encoder(clothes_pil_image_list[idx].to(device=device, dtype=latent_model_input.dtype))
                     _noise_pred = self.unet(
                         latent_model_input[:1, idx],
                         t,
                         encoder_hidden_states=image_embeddings[:1],
                         added_time_ids=added_time_ids[:1],
                         pose_latents=None,
+                        clothes_latents=None,
                         image_only_indicator=image_only_indicator,
                         return_dict=False,
                     )[0]
@@ -647,6 +721,7 @@ class InferenceAnimationPipeline(DiffusionPipeline):
                         encoder_hidden_states=image_embeddings[1:],
                         added_time_ids=added_time_ids[1:],
                         pose_latents=pose_latents,
+                        clothes_latents=clothes_latents,
                         image_only_indicator=image_only_indicator,
                         return_dict=False,
                     )[0]

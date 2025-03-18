@@ -44,6 +44,7 @@ class AnimationIDAttnNormalizedProcessor(nn.Module):
     ):
 
         # hidden_states = hidden_states.to(encoder_hidden_states.dtype)
+        
 
         residual = hidden_states
 
@@ -84,6 +85,10 @@ class AnimationIDAttnNormalizedProcessor(nn.Module):
             )
             if attn.norm_cross:
                 encoder_hidden_states = attn.norm_encoder_hidden_states(encoder_hidden_states)
+        
+        # print('--------------------------animation/modules/attention_processor_normalized.py--------------------------')
+        # print("hidden_states.size():", hidden_states.size())
+        # print("encoder_hidden_states.size():", encoder_hidden_states.size())
 
         key = attn.to_k(encoder_hidden_states)
         value = attn.to_v(encoder_hidden_states)

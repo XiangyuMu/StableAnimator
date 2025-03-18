@@ -1,0 +1,29 @@
+nohup bash -c 'CUDA_VISIBLE_DEVICES=3,2,1,0 accelerate launch train_single.py \
+ --pretrained_model_name_or_path="checkpoints/SVD" \
+ --finetune_mode=True \
+ --posenet_model_finetune_path="/data/xuzhenhao/StableAnimator/checkpoints/Animation_600video_clothes_v11/checkpoint-8000/pose_net-8000.pth" \
+ --cloth_encoder_finetune_path="/data/xuzhenhao/StableAnimator/checkpoints/Animation_600video_clothes_v11/checkpoint-8000/cloth_encoder-8000.pth"\
+ --face_encoder_finetune_path="/data/xuzhenhao/StableAnimator/checkpoints/Animation_600video_clothes_v11/checkpoint-8000/face_encoder-8000.pth" \
+ --unet_model_finetune_path="/data/xuzhenhao/StableAnimator/checkpoints/Animation_600video_clothes_v11/checkpoint-8000/unet-8000.pth" \
+ --output_dir="checkpoints/Animation_600video_clothes_v11" \
+ --data_root_path="animation_data" \
+ --data_path="animation_data/video_path.txt" \
+ --validation_image_folder="validation/heads_v3" \
+ --validation_control_folder="validation/poses_v2" \
+ --validation_clothes_folder="validation/clothes_v3_complete" \
+ --validation_image="validation/reference_v3.png" \
+ --validation_cloth_image="validation/reference_cloth_v3_complete.png" \
+ --num_workers=8 \
+ --lr_warmup_steps=500 \
+ --sample_n_frames=16 \
+ --learning_rate=1e-5 \
+ --per_gpu_batch_size=1 \
+ --num_train_epochs=6000 \
+ --mixed_precision="fp16" \
+ --gradient_accumulation_steps=1 \
+ --checkpointing_steps=2000 \
+ --validation_steps=500 \
+ --gradient_checkpointing \
+ --checkpoints_total_limit=5000 \
+ --resume_from_checkpoint="latest" > train_single.log 2>&1' &
+ disown

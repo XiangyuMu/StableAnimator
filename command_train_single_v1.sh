@@ -1,0 +1,26 @@
+CUDA_VISIBLE_DEVICES=1,0 accelerate launch train_single_v1.py \
+ --pretrained_model_name_or_path="checkpoints/SVD" \
+ --output_dir="checkpoints/Animation_600video_clothes_v12" \
+ --data_root_path="animation_data" \
+ --data_path="animation_data/video_path.txt" \
+ --dataset_width=512 \
+ --dataset_height=512 \
+ --validation_image_folder="/data/muxiangyu/pythonPrograms/StableAnimator/validation/heads_white_v5" \
+ --validation_control_folder="/data/muxiangyu/pythonPrograms/StableAnimator/validation/pose_wo_head_v5" \
+ --validation_clothes_folder="/data/muxiangyu/pythonPrograms/StableAnimator/validation/clothes_white_complete_v5" \
+ --validation_image="/data/muxiangyu/pythonPrograms/StableAnimator/validation/heads_white_v5/frame_1.png" \
+ --validation_cloth_image="/data/muxiangyu/pythonPrograms/StableAnimator/validation/clothes_white_complete_v5/frame_1.png" \
+ --validation_face_pose='/data/muxiangyu/pythonPrograms/StableAnimator/validation/pose_head_v5/frame_1.png' \
+ --num_workers=1 \
+ --lr_warmup_steps=500 \
+ --sample_n_frames=8 \
+ --learning_rate=1e-5 \
+ --per_gpu_batch_size=1 \
+ --num_train_epochs=100 \
+ --mixed_precision="fp16" \
+ --gradient_accumulation_steps=1 \
+ --checkpointing_steps=600 \
+ --validation_steps=300 \
+ --gradient_checkpointing \
+ --checkpoints_total_limit=5000 \
+#  --resume_from_checkpoint="latest" > train_single.log 2>&1

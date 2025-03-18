@@ -22,7 +22,9 @@ from animation.modules.attention_processor_normalized import AnimationIDAttnNorm
 from animation.modules.face_model import FaceModel
 from animation.modules.id_encoder import FusionFaceId
 from animation.modules.pose_net import PoseNet
+from animation.modules.cloth_encoder import ClothEncoder
 from animation.modules.unet import UNetSpatioTemporalConditionModel
+from torch.utils.data import DataLoader
 
 from animation.pipelines.validation_pipeline_animation import ValidationAnimationPipeline
 import transformers
@@ -715,11 +717,27 @@ def parse_args():
         ),
     )
     parser.add_argument(
+        "--validation_cloth_image",
+        type=str,
+        default=None,
+        help=(
+            "the validation cloth image"
+        ),
+    )
+    parser.add_argument(
         "--validation_control_folder",
         type=str,
         default=None,
         help=(
             "the validation control image"
+        ),
+    )
+    parser.add_argument(
+        "--validation_clothes_folder",
+        type=str,
+        default=None,
+        help=(
+            "the validation clothes image"
         ),
     )
     parser.add_argument(
@@ -752,6 +770,13 @@ def parse_args():
         type=str,
         default=None,
         help="Path to pretrained posenet model",
+    )
+    parser.add_argument(
+        "--cloth_encoder_model_name_or_path",
+        type=str,
+        default=None,
+        help="Path to pretrained cloth encoder model",
+
     )
     parser.add_argument(
         "--face_encoder_model_name_or_path",
@@ -790,6 +815,12 @@ def parse_args():
         type=str,
         default=None,
         help="Path to the pretrained posenet model",
+    )
+    parser.add_argument(
+        "--cloth_encoder_finetune_path",
+        type=str,
+        default=None,
+        help="Path to the pretrained cloth encoder",
     )
     parser.add_argument(
         "--face_encoder_finetune_path",
@@ -854,6 +885,7 @@ def main():
     warnings.filterwarnings('ignore', category=DeprecationWarning)
     warnings.filterwarnings('ignore', category=FutureWarning)
     torch.multiprocessing.set_start_method('spawn')
+
 
     args = parse_args()
 
@@ -930,6 +962,7 @@ def main():
         variant="fp16"
     )
     pose_net = PoseNet(noise_latent_channels=unet.config.block_out_channels[0])
+    cloth_encoder = ClothEncoder(noise_latent_channels=unet.config.block_out_channels[0])
     face_encoder = FusionFaceId(
         cross_attention_dim=1024,
         id_embeddings_dim=512,
@@ -985,13 +1018,19 @@ def main():
     unet.set_attn_processor(attn_procs)
 
     # triggering the finetune mode
-    if args.finetune_mode is True and args.posenet_model_finetune_path is not None and args.face_encoder_finetune_path is not None and args.unet_model_finetune_path is not None:
-        print("Loading existing posenet weights, face_encoder weights and unet weights.")
+    if args.finetune_mode is True and args.posenet_model_finetune_path is not None and args.cloth_encoder_finetune_path is not None and args.face_encoder_finetune_path is not None and args.unet_model_finetune_path is not None:
+        print("Loading existing posenet weights, cloth_encoder weights, face_encoder weights and unet weights.")
         if args.posenet_model_finetune_path.endswith(".pth"):
             pose_net_state_dict = torch.load(args.posenet_model_finetune_path, map_location="cpu")
             pose_net.load_state_dict(pose_net_state_dict, strict=True)
         else:
             print("posenet weights loading fail")
+            print(1 / 0)
+        if args.cloth_encoder_finetune_path.endswith(".pth"):
+            cloth_encoder_state_dict = torch.load(args.cloth_encoder_finetune_path, map_location="cpu")
+            cloth_encoder.load_state_dict(cloth_encoder_state_dict, strict=True)
+        else:
+            print("cloth_encoder weights loading fail")
             print(1 / 0)
         if args.face_encoder_finetune_path.endswith(".pth"):
             face_encoder_state_dict = torch.load(args.face_encoder_finetune_path, map_location="cpu")
@@ -1014,6 +1053,7 @@ def main():
     image_encoder.requires_grad_(False)
     unet.requires_grad_(False)
     pose_net.requires_grad_(False)
+    cloth_encoder.requires_grad_(False)
     face_encoder.requires_grad_(False)
 
     weight_dtype = torch.float32
@@ -1078,11 +1118,15 @@ def main():
     #     controlnext = ds_wrapper.controlnext
 
     pose_net.requires_grad_(True)
+    cloth_encoder.requires_grad_(True)
     face_encoder.requires_grad_(True)
 
     parameters_list = []
 
     for name, para in pose_net.named_parameters():
+        para.requires_grad = True
+        parameters_list.append({"params": para, "lr": args.learning_rate})
+    for name, para in cloth_encoder.named_parameters():
         para.requires_grad = True
         parameters_list.append({"params": para, "lr": args.learning_rate})
 
@@ -1140,12 +1184,14 @@ def main():
         handler_ante=face_model.handler_ante,
         face_helper=face_model.face_helper
     )
-    train_dataloader = torch.utils.data.DataLoader(
+    train_dataloader = DataLoader(
         train_dataset,
         batch_size=args.per_gpu_batch_size,
         num_workers=args.num_workers,
         shuffle=True,
+
     )
+    # train_dataloader._use_shared_memory = False
 
     # Scheduler and math around the number of training steps.
     overrode_max_train_steps = False
@@ -1161,10 +1207,14 @@ def main():
         num_training_steps=args.max_train_steps * accelerator.num_processes,
     )
 
-    unet, pose_net, face_encoder, optimizer, lr_scheduler, train_dataloader = accelerator.prepare(
-        unet, pose_net, face_encoder, optimizer, lr_scheduler, train_dataloader
+    unet, pose_net, cloth_encoder, face_encoder, optimizer, lr_scheduler, train_dataloader = accelerator.prepare(
+        unet, pose_net, cloth_encoder, face_encoder, optimizer, lr_scheduler, train_dataloader
     )
-
+    # Print the structure of unet to a txt file
+    with open('unet_structure.txt', 'w') as f:
+        for name, module in unet.named_modules():
+            f.write(f"{name}: {module}\n")
+    
     if args.use_ema:
         ema_unet.to(accelerator.device)
 
@@ -1267,6 +1317,7 @@ def main():
 
     for epoch in range(first_epoch, args.num_train_epochs):
         pose_net.train()
+        cloth_encoder.train()
         face_encoder.train()
         unet.train()
         train_loss = 0.0
@@ -1277,8 +1328,8 @@ def main():
                 if step % args.gradient_accumulation_steps == 0:
                     progress_bar.update(1)
                 continue
-
-            with accelerator.accumulate(pose_net, face_encoder, unet):
+            print("This is the step: ", step)
+            with accelerator.accumulate(pose_net, cloth_encoder, face_encoder, unet):
                 with accelerator.autocast():
                     pixel_values = batch["pixel_values"].to(weight_dtype).to(
                         accelerator.device, non_blocking=True
@@ -1286,11 +1337,18 @@ def main():
                     conditional_pixel_values = batch["reference_image"].to(weight_dtype).to(
                         accelerator.device, non_blocking=True
                     )
+                    cloth_pixel_values = batch["reference_cloth_image"].to(weight_dtype).to(
+                        accelerator.device, non_blocking=True
+                    )
 
-                    latents = tensor_to_vae_latent(pixel_values, vae).to(dtype=weight_dtype)
+                    latents = tensor_to_vae_latent(pixel_values, vae).to(dtype=weight_dtype)       # [1,16,3,512,512]->[1,16,4,64,64]
+                    print("This is the pixel_values size: ", pixel_values.size())
+                    print("This is the latents size: ", latents.size())
 
                     # Get the text embedding for conditioning.
-                    encoder_hidden_states = encode_image(conditional_pixel_values).to(dtype=weight_dtype)
+                    encoder_hidden_states = encode_image(cloth_pixel_values).to(dtype=weight_dtype)    # [1,3,512,512]->[1,1,1024]
+                    print("This is the cloth_pixel_values size: ", cloth_pixel_values.size())
+                    print("This is the encoder_hidden_states size: ", encoder_hidden_states.size())
                     image_embed = encoder_hidden_states.clone()
 
                     train_noise_aug = 0.02
@@ -1298,10 +1356,12 @@ def main():
                                                randn_tensor(conditional_pixel_values.shape, generator=generator,
                                                             device=conditional_pixel_values.device,
                                                             dtype=conditional_pixel_values.dtype)
-                    conditional_latents = tensor_to_vae_latent(conditional_pixel_values, vae, scale=False)
+                    conditional_latents = tensor_to_vae_latent(conditional_pixel_values, vae, scale=False)    # [1,3,512,512]->[1,4,64,64]
+                    print("This is the conditional_pixel_values size: ", conditional_pixel_values.size())
+                    print("This is the conditional_latents size: ", conditional_latents.size())
 
                     # Sample noise that we'll add to the latents
-                    noise = torch.randn_like(latents)
+                    noise = torch.randn_like(latents)    # [1,16,4,64,64]
                     bsz = latents.shape[0]
                     # Sample a random timestep for each image
                     sigmas = rand_cosine_interpolated(shape=[bsz, ], image_d=image_d, noise_d_low=noise_d_low,
@@ -1312,14 +1372,17 @@ def main():
                     # sigmas = rand_log_normal(shape=[bsz,], loc=0.7, scale=1.6).to(latents)
                     # Add noise to the latents according to the noise magnitude at each timestep
                     # (this is the forward diffusion process)
-                    sigmas_reshaped = sigmas.clone()
+                    sigmas_reshaped = sigmas.clone()    # [1]
+                    print("This is the sigmas size: ", sigmas.size())
                     while len(sigmas_reshaped.shape) < len(latents.shape):
                         sigmas_reshaped = sigmas_reshaped.unsqueeze(-1)
+                    print("This is the sigmas_reshaped size: ", sigmas_reshaped.size())  # [1, 1, 1, 1, 1]
 
                     noisy_latents = latents + noise * sigmas_reshaped
 
                     timesteps = torch.Tensor([0.25 * sigma.log() for sigma in sigmas]).to(latents.device,
                                                                                           dtype=weight_dtype)
+                    print("This is the timesteps size: ", timesteps.size())     # [1]
 
                     inp_noisy_latents = noisy_latents / ((sigmas_reshaped ** 2 + 1) ** 0.5)
 
@@ -1333,7 +1396,8 @@ def main():
                         device=latents.device
                     )
 
-                    added_time_ids = added_time_ids.to(latents.device)
+                    added_time_ids = added_time_ids.to(latents.device)    # [1, 3]
+                    print("This is the added_time_ids size: ", added_time_ids.size())     
 
                     # Conditioning dropout to support classifier-free guidance during inference. For more details
                     # check out the section 3.2.1 of the original paper https://arxiv.org/abs/2211.09800.
@@ -1366,36 +1430,52 @@ def main():
                     pose_pixels = batch["pose_pixels"].to(
                         dtype=weight_dtype, device=accelerator.device, non_blocking=True
                     )
+                    clothes_pixels = batch["clothes_pixels"].to(
+                        dtype=weight_dtype, device=accelerator.device, non_blocking=True
+                    )
                     faceid_embeds = batch["faceid_embeds"].to(
                         dtype=weight_dtype, device=accelerator.device, non_blocking=True
                     )
-                    pose_latents = pose_net(pose_pixels)
+                    pose_latents = pose_net(pose_pixels)     # [1,16,3,512,512]->[16,320,64,64]
+                    print('pose_pixels:',pose_pixels.shape)
+                    print('pose_latents:',pose_latents.shape)
+
+                    clothes_latents = cloth_encoder(clothes_pixels)     # [1,16,3,512,512]->[16,320,64,64]
+                    print('clothes_pixels:',clothes_pixels.shape)
+                    print('clothes_latents:',clothes_latents.shape)
 
                     # print("This is faceid_latents calculation")
                     # print(faceid_embeds.size())  # [1, 512]
                     # print(image_embed.size())  # [1, 1, 1024]
-
+                    print("This is faceid_latents calculation")
                     faceid_latents = face_encoder(faceid_embeds, image_embed)
+                    print(faceid_latents.size())  # [1, 4, 1024]
 
                     inp_noisy_latents = torch.cat(
                         [inp_noisy_latents, conditional_latents], dim=2)
                     target = latents
 
+                    print(f"the size of inp_noisy_latents: {inp_noisy_latents.size()}")    # [1,16,8,64,64]
+
                     # print(f"the size of encoder_hidden_states: {encoder_hidden_states.size()}") # [1, 1, 1024]
                     # print(f"the size of face latents: {faceid_latents.size()}") # [1, 4, 1024]
                     encoder_hidden_states = torch.cat([encoder_hidden_states, faceid_latents], dim=1)
+                    print(f"the size of encoder_hidden_states: {encoder_hidden_states.size()}") # [1, 5, 1024]
 
                     encoder_hidden_states = encoder_hidden_states.to(latents.dtype)
                     inp_noisy_latents = inp_noisy_latents.to(latents.dtype)
                     pose_latents = pose_latents.to(latents.dtype)
+                    clothes_latents = clothes_latents.to(latents.dtype)
+                    print("This is the size of encoder_hidden_states: ", encoder_hidden_states.size())  # [1, 5, 1024]
 
                     # Predict the noise residual
                     model_pred = unet(
                         inp_noisy_latents, timesteps, encoder_hidden_states,
                         added_time_ids=added_time_ids,
                         pose_latents=pose_latents,
+                        clothes_latents=clothes_latents
                     ).sample
-
+                    print("This is the size of model_pred: ", model_pred.size())
                     sigmas = sigmas_reshaped
                     # Denoise the latents
                     c_out = -sigmas / ((sigmas ** 2 + 1) ** 0.5)
@@ -1418,19 +1498,34 @@ def main():
                         dim=1,
                     )
                     loss = loss.mean()
-
+                    
                     # Gather the losses across all processes for logging (if we use distributed training).
                     avg_loss = accelerator.gather(
                         loss.repeat(args.per_gpu_batch_size)).mean()
                     train_loss += avg_loss.item() / args.gradient_accumulation_steps
-
+                    print("This is the loss: ", loss)
                     # Backpropagate
                     accelerator.backward(loss)
                     # if accelerator.sync_gradients:
                     #     accelerator.clip_grad_norm_(unet.parameters(), args.max_grad_norm)
+                    print('backword')
                     optimizer.step()
+                    print('optimizer')
                     lr_scheduler.step()
+                    print('lr_scheduler')
                     optimizer.zero_grad()
+
+                    with open('/data/muxiangyu/pythonPrograms/StableAnimator/model_parameters_grad.txt', 'w') as f:
+                        for name, param in unet.named_parameters():
+                            if param.grad is not None:
+                                info_grad = f"参数名: {name}, 梯度形状: {param.grad.shape}"
+                                info_grad += f"梯度值: {param.grad}\n"
+                                # print(f"参数名: {name}, 梯度形状: {param.grad.shape}")
+                                # print(f"梯度值: {param.grad}")
+                            else:
+                                info_grad = f"参数名: {name}, 无梯度（可能该参数不需要计算梯度）\n"
+                                # print(f"参数名: {name}, 无梯度（可能该参数不需要计算梯度）")
+                            f.write(info_grad)
 
                     with torch.cuda.device(latents.device):
                         torch.cuda.empty_cache()
@@ -1478,6 +1573,7 @@ def main():
                     accelerator.save_state(save_path)
                     unwrap_unet = accelerator.unwrap_model(unet)
                     unwrap_pose_net = accelerator.unwrap_model(pose_net)
+                    unwrap_cloth_encoder = accelerator.unwrap_model(cloth_encoder)
                     unwrap_face_encoder = accelerator.unwrap_model(face_encoder)
                     unwrap_unet_state_dict = unwrap_unet.state_dict()
                     torch.save(unwrap_unet_state_dict,
@@ -1485,6 +1581,9 @@ def main():
                     unwrap_pose_net_state_dict = unwrap_pose_net.state_dict()
                     torch.save(unwrap_pose_net_state_dict, os.path.join(args.output_dir, f"checkpoint-{global_step}",
                                                                         f"pose_net-{global_step}.pth"))
+                    unwrap_cloth_encoder_state_dict = unwrap_cloth_encoder.state_dict()
+                    torch.save(unwrap_cloth_encoder_state_dict, os.path.join(args.output_dir, f"checkpoint-{global_step}",
+                                                                            f"cloth_encoder-{global_step}.pth"))
                     unwrap_face_encoder_state_dict = unwrap_face_encoder.state_dict()
                     torch.save(unwrap_face_encoder_state_dict,
                                os.path.join(args.output_dir, f"checkpoint-{global_step}",
@@ -1508,6 +1607,7 @@ def main():
                             image_encoder=image_encoder,
                             unet=unet,
                             pose_net=pose_net,
+                            cloth_encoder=cloth_encoder,
                             face_encoder=face_encoder,
                             app=face_model.app,
                             face_helper=face_model.face_helper,
@@ -1520,7 +1620,9 @@ def main():
                             torch_dtype=weight_dtype,
                             validation_image_folder=args.validation_image_folder,
                             validation_image=args.validation_image,
+                            validation_cloth_image=args.validation_cloth_image,
                             validation_control_folder=args.validation_control_folder,
+                            validation_clothes_folder=args.validation_clothes_folder,
                             output_dir=args.output_dir,
                             generator=generator,
                             global_step=global_step,
@@ -1555,6 +1657,7 @@ def log_validation(
         image_encoder,
         unet,
         pose_net,
+        cloth_encoder,
         face_encoder,
         app,
         face_helper,
@@ -1567,7 +1670,9 @@ def log_validation(
         torch_dtype,
         validation_image_folder,
         validation_image,
+        validation_cloth_image,
         validation_control_folder,
+        validation_clothes_folder,
         output_dir,
         generator,
         global_step,
@@ -1578,6 +1683,7 @@ def log_validation(
     validation_image_encoder = accelerator.unwrap_model(image_encoder)
     validation_vae = accelerator.unwrap_model(vae)
     validation_pose_net = accelerator.unwrap_model(pose_net)
+    validation_cloth_encoder = accelerator.unwrap_model(cloth_encoder)
     validation_face_encoder = accelerator.unwrap_model(face_encoder)
 
     pipeline = ValidationAnimationPipeline(
@@ -1587,6 +1693,7 @@ def log_validation(
         scheduler=scheduler,
         feature_extractor=feature_extractor,
         pose_net=validation_pose_net,
+        cloth_encoder=validation_cloth_encoder,
         face_encoder=validation_face_encoder,
     )
     pipeline = pipeline.to(accelerator.device)
@@ -1596,7 +1703,9 @@ def log_validation(
         validation_image = validation_images[0]
     else:
         validation_image = Image.open(validation_image).convert('RGB')
+    validation_cloth_image = Image.open(validation_cloth_image).convert('RGB')
     validation_control_images = load_images_from_folder(validation_control_folder)
+    validation_clothes_images = load_images_from_folder(validation_clothes_folder)
 
     val_save_dir = os.path.join(output_dir, "validation_images")
     if not os.path.exists(val_save_dir):
@@ -1633,7 +1742,9 @@ def log_validation(
 
             video_frames = pipeline(
                 image=validation_image,
+                image_cloth=validation_cloth_image,
                 image_pose=validation_control_images,
+                image_clothes=validation_clothes_images,
                 height=height,
                 width=width,
                 num_frames=num_frames,

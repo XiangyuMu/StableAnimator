@@ -438,10 +438,15 @@ class UNetSpatioTemporalConditionModel(ModelMixin, ConfigMixin, UNet2DConditionL
         # emb: [batch, channels] -> [batch * frames, channels]
         emb = emb.repeat_interleave(num_frames, dim=0)
         # encoder_hidden_states: [batch, 1, channels] -> [batch * frames, 1, channels]
-        encoder_hidden_states = encoder_hidden_states.repeat_interleave(num_frames, dim=0)
+
+
+        #-----------------------------------------------------------
+        # encoder_hidden_states = encoder_hidden_states.repeat_interleave(num_frames, dim=0)
+        #-----------------------------------------------------------
+        
 
         # 2. pre-process
-        sample = self.conv_in(sample)
+        sample = self.conv_in(sample)     # [batch * frames, channels, height, width] [16,320,64,64]
         if pose_latents is not None:
             sample = sample + pose_latents
 
@@ -449,7 +454,21 @@ class UNetSpatioTemporalConditionModel(ModelMixin, ConfigMixin, UNet2DConditionL
             if image_only_indicator else torch.zeros(batch_size, num_frames, dtype=sample.dtype, device=sample.device)
 
         down_block_res_samples = (sample,)
+
+        # -------------------print the shape of each parameters------------------
+        # print("sample shape: ", sample.shape)
+        # print("emb shape: ", emb.shape)
+        # print("encoder_hidden_states shape: ", encoder_hidden_states.shape)
+        # print("image_only_indicator shape: ", image_only_indicator.shape)
+        # -----------------------------------------------------------------------
+
         for downsample_block in self.down_blocks:
+            # print('#------------------------------------------------')
+            # print('sample shape: ', sample.shape)
+            # print('emb shape: ', emb.shape)
+            # print('encoder_hidden_states shape: ', encoder_hidden_states.shape)
+            # print('image_only_indicator shape: ', image_only_indicator.shape)
+            # print('#------------------------------------------------')
             if hasattr(downsample_block, "has_cross_attention") and downsample_block.has_cross_attention:
                 sample, res_samples = downsample_block(
                     hidden_states=sample,

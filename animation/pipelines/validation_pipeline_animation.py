@@ -23,6 +23,9 @@ from einops import rearrange
 from insightface.app import FaceAnalysis
 
 from ..modules.pose_net import PoseNet
+from ..modules.cloth_encoder import ClothEncoder
+
+
 
 logger = logging.get_logger(__name__)  # pylint: disable=invalid-name
 
@@ -115,6 +118,7 @@ class ValidationAnimationPipeline(DiffusionPipeline):
             scheduler,
             feature_extractor,
             pose_net,
+            cloth_encoder,
             face_encoder,
     ):
         super().__init__()
@@ -126,6 +130,7 @@ class ValidationAnimationPipeline(DiffusionPipeline):
             scheduler=scheduler,
             feature_extractor=feature_extractor,
             pose_net=pose_net,
+            cloth_encoder=cloth_encoder,
             face_encoder=face_encoder,
         )
         self.vae_scale_factor = 2 ** (len(self.vae.config.block_out_channels) - 1)
@@ -391,7 +396,9 @@ class ValidationAnimationPipeline(DiffusionPipeline):
     def __call__(
             self,
             image: Union[PIL.Image.Image, List[PIL.Image.Image], torch.FloatTensor],
+            image_cloth: Union[PIL.Image.Image, List[PIL.Image.Image], torch.FloatTensor],
             image_pose: Union[torch.FloatTensor],
+            image_clothes: Union[torch.FloatTensor],
             height: int = 576,
             width: int = 1024,
             num_frames: Optional[int] = None,
@@ -527,7 +534,7 @@ class ValidationAnimationPipeline(DiffusionPipeline):
         self._guidance_scale = max_guidance_scale
 
         # 3. Encode input image
-        image_embeddings = self._encode_image(image, device, num_videos_per_prompt, do_classifier_free_guidance)
+        image_embeddings = self._encode_image(image_cloth, device, num_videos_per_prompt, do_classifier_free_guidance)
         # self.image_encoder.cpu()
 
         # NOTE: Stable Diffusion Video was conditioned on fps - 1, which
@@ -630,10 +637,20 @@ class ValidationAnimationPipeline(DiffusionPipeline):
         pose_pil_image_list = torch.stack(pose_pil_image_list, dim=0)
         pose_pil_image_list = rearrange(pose_pil_image_list, "f h w c -> f c h w")
 
+        clothes_pil_image_list = []
+        for clothes in image_clothes:
+            clothes = torch.from_numpy(np.array(clothes)).float()
+            clothes = clothes / 127.5 - 1
+            clothes_pil_image_list.append(clothes)
+        clothes_pil_image_list = torch.stack(clothes_pil_image_list, dim=0)
+        clothes_pil_image_list = rearrange(clothes_pil_image_list, "f h w c -> f c h w")
+
+
         # print(indices)  # [[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15]]
         # print(pose_pil_image_list.size())  # [16, 3, 512, 512]
 
         self.pose_net.to(device)
+        self.cloth_encoder.to(device)
         self.unet.to(device)
 
         with torch.cuda.device(device):
@@ -656,12 +673,15 @@ class ValidationAnimationPipeline(DiffusionPipeline):
                 for idx in indices:
                     # classification-free inference
                     pose_latents = self.pose_net(pose_pil_image_list[idx].to(device))
+                    clothes_latents = self.cloth_encoder(clothes_pil_image_list[idx].to(device))
+
                     _noise_pred = self.unet(
                         latent_model_input[:1, idx],
                         t,
                         encoder_hidden_states=image_embeddings[:1],
                         added_time_ids=added_time_ids[:1],
                         pose_latents=None,
+                        clothes_latents=None,
                         image_only_indicator=image_only_indicator,
                         return_dict=False,
                     )[0]
@@ -674,6 +694,7 @@ class ValidationAnimationPipeline(DiffusionPipeline):
                         encoder_hidden_states=image_embeddings[1:],
                         added_time_ids=added_time_ids[1:],
                         pose_latents=pose_latents,
+                        clothes_latents=clothes_latents,
                         image_only_indicator=image_only_indicator,
                         return_dict=False,
                     )[0]

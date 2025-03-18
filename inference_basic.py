@@ -13,6 +13,7 @@ from animation.modules.attention_processor_normalized import AnimationIDAttnNorm
 from animation.modules.face_model import FaceModel
 from animation.modules.id_encoder import FusionFaceId
 from animation.modules.pose_net import PoseNet
+from animation.modules.cloth_encoder import ClothEncoder
 from animation.modules.unet import UNetSpatioTemporalConditionModel
 from animation.pipelines.inference_pipeline_animation import InferenceAnimationPipeline
 import random
@@ -107,7 +108,14 @@ def parse_args():
             "the validation control image"
         ),
     )
-
+    parser.add_argument(
+        "--validation_clothes_folder",
+        type=str,
+        default=None,
+        help=(
+            "the validation clothes image"
+        ),
+    )
     parser.add_argument(
         "--output_dir",
         type=str,
@@ -148,6 +156,12 @@ def parse_args():
         type=str,
         default=None,
         help="Path to pretrained posenet model",
+    )
+    parser.add_argument(
+        "--cloth_model_name_or_path",
+        type=str,
+        default=None,
+        help="Path to pretrained cloth encoder model",
     )
     parser.add_argument(
         "--face_encoder_model_name_or_path",
@@ -231,9 +245,12 @@ if __name__ == "__main__":
     unet = UNetSpatioTemporalConditionModel.from_pretrained(
         args.pretrained_model_name_or_path,
         subfolder="unet",
-        low_cpu_mem_usage=True,
+        low_cpu_mem_usage=True
     )
     pose_net = PoseNet(noise_latent_channels=unet.config.block_out_channels[0])
+    cloth_encoder = ClothEncoder(
+        noise_latent_channels=unet.config.block_out_channels[0]
+    )
     face_encoder = FusionFaceId(
         cross_attention_dim=1024,
         id_embeddings_dim=512,
@@ -286,13 +303,19 @@ if __name__ == "__main__":
     unet.set_attn_processor(attn_procs)
 
     # resume the previous checkpoint
-    if args.posenet_model_name_or_path is not None and args.face_encoder_model_name_or_path is not None and args.unet_model_name_or_path is not None:
+    if args.posenet_model_name_or_path is not None and args.cloth_model_name_or_path is not None and args.face_encoder_model_name_or_path is not None and args.unet_model_name_or_path is not None:
         print("Loading existing posenet weights, face_encoder weights and unet weights.")
         if args.posenet_model_name_or_path.endswith(".pth"):
             pose_net_state_dict = torch.load(args.posenet_model_name_or_path, map_location="cpu")
             pose_net.load_state_dict(pose_net_state_dict, strict=True)
         else:
             print("posenet weights loading fail")
+            print(1/0)
+        if args.cloth_model_name_or_path.endswith(".pth"):
+            cloth_encoder_state_dict = torch.load(args.cloth_model_name_or_path, map_location="cpu")
+            cloth_encoder.load_state_dict(cloth_encoder_state_dict, strict=True)
+        else:
+            print("cloth_encoder weights loading fail")
             print(1/0)
         if args.face_encoder_model_name_or_path.endswith(".pth"):
             face_encoder_state_dict = torch.load(args.face_encoder_model_name_or_path, map_location="cpu")
@@ -312,6 +335,7 @@ if __name__ == "__main__":
     image_encoder.requires_grad_(False)
     unet.requires_grad_(False)
     pose_net.requires_grad_(False)
+    cloth_encoder.requires_grad_(False)
     face_encoder.requires_grad_(False)
 
     if args.gradient_checkpointing:
@@ -328,6 +352,7 @@ if __name__ == "__main__":
         scheduler=noise_scheduler,
         feature_extractor=feature_extractor,
         pose_net=pose_net,
+        cloth_encoder=cloth_encoder,
         face_encoder=face_encoder,
     ).to(device='cuda', dtype=weight_dtype)
 
@@ -336,6 +361,7 @@ if __name__ == "__main__":
     validation_image_path = args.validation_image
     validation_image = Image.open(args.validation_image).convert('RGB')
     validation_control_images = load_images_from_folder(args.validation_control_folder, width=args.width, height=args.height)
+    validation_clothes_images = load_images_from_folder(args.validation_clothes_folder, width=args.width, height=args.height)
 
     num_frames = len(validation_control_images)
     face_model.face_helper.clean_all()
@@ -366,6 +392,7 @@ if __name__ == "__main__":
     video_frames = pipeline(
         image=validation_image,
         image_pose=validation_control_images,
+        image_clothes=validation_clothes_images,
         height=args.height,
         width=args.width,
         num_frames=num_frames,

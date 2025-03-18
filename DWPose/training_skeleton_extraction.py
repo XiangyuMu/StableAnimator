@@ -139,10 +139,10 @@ if __name__ == '__main__':
     for idx in range(start, end+1):
         subfolder = str(idx).zfill(5)
         subfolder_path = os.path.join(image_root, subfolder)
-        images_subfolder_path = os.path.join(subfolder_path, "images")
+        images_subfolder_path = os.path.join(subfolder_path, "test")
         print(f"images subfolder path: {images_subfolder_path}")
 
-        pose_subfolder_path = os.path.join(subfolder_path, "poses")
+        pose_subfolder_path = os.path.join(subfolder_path, "pose")
         if not os.path.exists(pose_subfolder_path):
             os.makedirs(pose_subfolder_path)
             print(f"Folder created: {pose_subfolder_path}")

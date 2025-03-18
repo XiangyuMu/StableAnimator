@@ -37,19 +37,18 @@ def get_face_masks(image_path, save_path, app, face_helper, height=904, width=51
             mask_1[:] = 255
             cv2.imwrite(save_path, mask_1)
 
-
 if __name__ == "__main__":
-
     parser = argparse.ArgumentParser("Human Face Mask Extraction", add_help=True)
-    parser.add_argument("--image_folder", type=str, help="Specify a path of a image folder")
+    parser.add_argument("--base_folder", type=str, help="Base folder containing multiple target_images subfolders")
     args = parser.parse_args()
 
-    image_folder = args.image_folder
+    base_folder = args.base_folder  # 例如：animation_data/rec
 
     app = FaceAnalysis(
         name='antelopev2', root='.', providers=['CUDAExecutionProvider', 'CPUExecutionProvider']
     )
     app.prepare(ctx_id=0, det_size=(640, 640))
+
     face_helper = FaceRestoreHelper(
         upscale_factor=1,
         face_size=512,
@@ -60,26 +59,72 @@ if __name__ == "__main__":
     )
     face_helper.face_parse = init_parsing_model(model_name='bisenet', device="cuda")
 
-    print(f"images subfolder path: {image_folder}")
-    face_subfolder_path = os.path.join(os.path.dirname(image_folder), "faces")
-    if not os.path.exists(face_subfolder_path):
-        os.makedirs(face_subfolder_path)
-        print(f"Folder created: {face_subfolder_path}")
-    else:
-        print(f"Folder already exists: {face_subfolder_path}")
-    for root, dirs, files in os.walk(image_folder):
-        for file in files:
-            if file.endswith('.png'):
-                file_path = os.path.join(root, file)
-                print(file_path)
-                file_name = os.path.splitext(file)[0]
-                image_name = file_name + '.png'
-                image_legal_path = os.path.join(image_folder, image_name)
-                if os.path.exists(os.path.join(face_subfolder_path, file_name + '.png')):
-                    existed_path = os.path.join(face_subfolder_path, file_name + '.png')
-                    print(f"{existed_path} already exists!")
-                    continue
+    for subfolder in os.listdir(base_folder):
+        subfolder_path = os.path.join(base_folder, subfolder)
+        target_images_path = os.path.join(subfolder_path, "images")
 
-                face_save_path = os.path.join(face_subfolder_path, file_name + '.png')
-                get_face_masks(image_path=image_legal_path, save_path=face_save_path, app=app, face_helper=face_helper)
-                print(f"Finish face Extraction: {face_save_path}")
+        if os.path.isdir(target_images_path):
+            face_subfolder_path = os.path.join(subfolder_path, "faces")
+            os.makedirs(face_subfolder_path, exist_ok=True)
+
+            print(f"Processing: {target_images_path}")
+
+            for root, dirs, files in os.walk(target_images_path):
+                for file in files:
+                    if file.endswith('.png'):
+                        file_path = os.path.join(root, file)
+                        file_name = os.path.splitext(file)[0]
+                        face_save_path = os.path.join(face_subfolder_path, file_name + '.png')
+
+                        if os.path.exists(face_save_path):
+                            print(f"{face_save_path} already exists, skipping...")
+                            continue
+
+                        get_face_masks(image_path=file_path, save_path=face_save_path, app=app, face_helper=face_helper)
+                        print(f"Finished face extraction: {face_save_path}")
+
+# if __name__ == "__main__":
+
+#     parser = argparse.ArgumentParser("Human Face Mask Extraction", add_help=True)
+#     parser.add_argument("--image_folder", type=str, help="Specify a path of a image folder")
+#     args = parser.parse_args()
+
+#     image_folder = args.image_folder
+
+#     app = FaceAnalysis(
+#         name='antelopev2', root='.', providers=['CUDAExecutionProvider', 'CPUExecutionProvider']
+#     )
+#     app.prepare(ctx_id=0, det_size=(640, 640))
+#     face_helper = FaceRestoreHelper(
+#         upscale_factor=1,
+#         face_size=512,
+#         crop_ratio=(1, 1),
+#         det_model='retinaface_resnet50',
+#         save_ext='png',
+#         device="cuda",
+#     )
+#     face_helper.face_parse = init_parsing_model(model_name='bisenet', device="cuda")
+
+#     print(f"images subfolder path: {image_folder}")
+#     face_subfolder_path = os.path.join(os.path.dirname(image_folder), "faces")
+#     if not os.path.exists(face_subfolder_path):
+#         os.makedirs(face_subfolder_path)
+#         print(f"Folder created: {face_subfolder_path}")
+#     else:
+#         print(f"Folder already exists: {face_subfolder_path}")
+#     for root, dirs, files in os.walk(image_folder):
+#         for file in files:
+#             if file.endswith('.png'):
+#                 file_path = os.path.join(root, file)
+#                 print(file_path)
+#                 file_name = os.path.splitext(file)[0]
+#                 image_name = file_name + '.png'
+#                 image_legal_path = os.path.join(image_folder, image_name)
+#                 if os.path.exists(os.path.join(face_subfolder_path, file_name + '.png')):
+#                     existed_path = os.path.join(face_subfolder_path, file_name + '.png')
+#                     print(f"{existed_path} already exists!")
+#                     continue
+
+#                 face_save_path = os.path.join(face_subfolder_path, file_name + '.png')
+#                 get_face_masks(image_path=image_legal_path, save_path=face_save_path, app=app, face_helper=face_helper)
+#                 print(f"Finish face Extraction: {face_save_path}")

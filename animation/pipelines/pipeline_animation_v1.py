@@ -22,6 +22,7 @@ from transformers import CLIPImageProcessor, CLIPVisionModelWithProjection
 from insightface.app import FaceAnalysis 
 
 from ..modules.pose_net import PoseNet
+from ..modules.cloth_encoder import ClothEncoder
 
 logger = logging.get_logger(__name__)  # pylint: disable=invalid-name
 
@@ -104,6 +105,7 @@ class AnimationPipeline(DiffusionPipeline):
         scheduler: EulerDiscreteScheduler,
         feature_extractor: CLIPImageProcessor,
         pose_net: PoseNet,
+        cloth_encoder: ClothEncoder,
         face_encoder: FusionFaceId,
         torch_dtype,
     ):
@@ -116,6 +118,7 @@ class AnimationPipeline(DiffusionPipeline):
             scheduler=scheduler,
             feature_extractor=feature_extractor,
             pose_net=pose_net,
+            cloth_encoder=cloth_encoder,
             face_encoder=face_encoder,
         )
         self.vae_scale_factor = 2 ** (len(self.vae.config.block_out_channels) - 1)
@@ -385,6 +388,7 @@ class AnimationPipeline(DiffusionPipeline):
         self,
         image: Union[PIL.Image.Image, List[PIL.Image.Image], torch.FloatTensor],
         image_pose: Union[torch.FloatTensor],
+        image_clothes: Union[torch.FloatTensor],
         height: int = 576,
         width: int = 1024,
         num_frames: Optional[int] = None,
@@ -641,12 +645,14 @@ class AnimationPipeline(DiffusionPipeline):
                     
                     # classification-free inference
                     pose_latents = self.pose_net(image_pose[idx].to(device))
+                    clothes_latents = self.cloth_encoder(image_clothes[idx].to(device))
                     _noise_pred = self.unet(
                         latent_model_input[:1, idx],
                         t,
                         encoder_hidden_states=image_embeddings[:1],
                         added_time_ids=added_time_ids[:1],
                         pose_latents=None,
+                        clothes_latents=None,
                         image_only_indicator=image_only_indicator,
                         return_dict=False,
                     )[0]
@@ -659,6 +665,7 @@ class AnimationPipeline(DiffusionPipeline):
                         encoder_hidden_states=image_embeddings[1:],
                         added_time_ids=added_time_ids[1:],
                         pose_latents=pose_latents,
+                        clothes_latents=clothes_latents,
                         image_only_indicator=image_only_indicator,
                         return_dict=False,
                     )[0]
@@ -685,6 +692,7 @@ class AnimationPipeline(DiffusionPipeline):
                     latents = callback_outputs.pop("latents", latents)
 
         self.pose_net.cpu()
+        self.cloth_encoder.cpu()
         self.unet.cpu()
         self.face_encoder.cpu()
 
