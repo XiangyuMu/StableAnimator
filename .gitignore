@@ -47,3 +47,4 @@ wandb/
 hiera/
 dataset/
 
+privateKey.txt
