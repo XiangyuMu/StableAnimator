@@ -1758,7 +1758,7 @@ def log_validation(
         for val_img_idx in range(num_validation_cases):
             # num_frames = args.num_frames
             # num_frames = len(validation_control_images)
-            num_frames = 8
+            num_frames = 20
 
             face_helper.clean_all()
             validation_face = cv2.imread(validation_image_path)
@@ -1793,7 +1793,7 @@ def log_validation(
                 height=height,
                 width=width,
                 num_frames=num_frames,
-                tile_size=num_frames,
+                tile_size= 8,
                 tile_overlap=4,
                 decode_chunk_size=4,
                 motion_bucket_id=127.,

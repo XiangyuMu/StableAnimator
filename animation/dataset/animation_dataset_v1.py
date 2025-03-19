@@ -88,11 +88,11 @@ class LargeScaleAnimationVideos(Dataset):
         warnings.filterwarnings('ignore', category=FutureWarning)
 
         frames_path = osp.join(self.video_files[idx], "images")
-        heads_path = osp.join(self.video_files[idx], "heads_white")
+        heads_path = osp.join(self.video_files[idx], "centered_heads")
         poses_wo_head_path = osp.join(self.video_files[idx], "pose_wo_head")
         clothes_path = osp.join(self.video_files[idx], "clothes_white_complete")
         face_masks_path = osp.join(self.video_files[idx], "faces")
-        poses_with_head_path = osp.join(self.video_files[idx], "pose_head")
+        poses_with_head_path = osp.join(self.video_files[idx], "pose_head_new")
         video_length = self.frame_count(frames_path)
         frames_list = self.find_frames_list(frames_path)
 

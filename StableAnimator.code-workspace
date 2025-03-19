@@ -1,0 +1,13 @@
+{
+	"folders": [
+		{
+			"path": "."
+		},
+		{
+			"path": "../../TryonDatasets/datasets"
+		}
+	],
+	"settings": {
+		"marscode.chatLanguage": "cn"
+	}
+}

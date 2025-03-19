@@ -39,6 +39,6 @@ def select_and_copy_images(src_folder, dest_folder, num_images=20):
 
 # 调用函数
 select_and_copy_images('/data/muxiangyu/pythonPrograms/StableAnimator/animation_data/00005/clothes_white_complete', '/data/muxiangyu/pythonPrograms/StableAnimator/validation/clothes_white_complete_v5')
-select_and_copy_images('/data/muxiangyu/pythonPrograms/StableAnimator/animation_data/00005/heads_white', '/data/muxiangyu/pythonPrograms/StableAnimator/validation/heads_white_v5')
-select_and_copy_images('/data/muxiangyu/pythonPrograms/StableAnimator/animation_data/00005/pose_head', '/data/muxiangyu/pythonPrograms/StableAnimator/validation/pose_head_v5')
+select_and_copy_images('/data/muxiangyu/pythonPrograms/StableAnimator/animation_data/00005/centered_heads', '/data/muxiangyu/pythonPrograms/StableAnimator/validation/centered_heads_v5')
+select_and_copy_images('/data/muxiangyu/pythonPrograms/StableAnimator/animation_data/00005/pose_head_new', '/data/muxiangyu/pythonPrograms/StableAnimator/validation/pose_head_new_v5')
 select_and_copy_images('/data/muxiangyu/pythonPrograms/StableAnimator/animation_data/00005/pose_wo_head', '/data/muxiangyu/pythonPrograms/StableAnimator/validation/pose_wo_head_v5')

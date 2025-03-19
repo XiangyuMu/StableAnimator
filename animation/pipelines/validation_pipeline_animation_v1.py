@@ -597,7 +597,7 @@ class ValidationAnimationPipeline(DiffusionPipeline):
         clothes_pil_image_list = rearrange(clothes_pil_image_list, "f h w c -> f c h w")
 
         # image = self.image_processor.preprocess(image, height=height, width=width).to(device)
-        print('type of image',type(image))
+
         noise = randn_tensor(clothes_pil_image_list.shape, generator=generator, device=device, dtype=image_embeddings.dtype)
         clothes_pil_image_list = clothes_pil_image_list + noise_aug_strength * noise
 
@@ -605,7 +605,7 @@ class ValidationAnimationPipeline(DiffusionPipeline):
         if needs_upcasting:
             self_vae_dtype = self.vae.dtype
             self.vae.to(dtype=torch.float32)
-        print('clothes_pil_image_list size',clothes_pil_image_list.size())
+   
         clothes_pil_image_list = clothes_pil_image_list.unsqueeze(0)
         image_latents = self._encoder_vea_tensor(
             clothes_pil_image_list,
@@ -614,7 +614,7 @@ class ValidationAnimationPipeline(DiffusionPipeline):
             do_classifier_free_guidance=do_classifier_free_guidance,
         )
         image_latents = image_latents.to(image_embeddings.dtype)
-        image_latents = image_latents[:,:8]
+        # image_latents = image_latents[:,:8]
 
         if needs_upcasting:
             self.vae.to(dtype=self_vae_dtype)
@@ -672,7 +672,7 @@ class ValidationAnimationPipeline(DiffusionPipeline):
                    range(0, num_frames - tile_size + 1, tile_size - tile_overlap)]
         if indices[-1][-1] < num_frames - 1:
             indices.append([0, *range(num_frames - tile_size + 1, num_frames)])
-        print('indices',indices)
+        
 
         pose_pil_image_list = []
         for pose in image_pose:
@@ -752,10 +752,10 @@ class ValidationAnimationPipeline(DiffusionPipeline):
                     uncond_pose_head_head_latents = torch.zeros_like(pose_head)
                     # print('uncond_pose_head_head_latents size',uncond_pose_head_head_latents.size())
                     # print('uncond_image_embeddings size',uncond_image_embeddings.size())
-                    uncond_image_embeddings = uncond_image_embeddings.repeat_interleave(8, dim=0)
+                    uncond_image_embeddings = uncond_image_embeddings.repeat_interleave(tile_size, dim=0)
                     uncond_image_embeddings = torch.cat([uncond_image_embeddings, uncond_pose_head_head_latents], dim=1)
                     cond_image_embeddings = image_embeddings[1:]
-                    cond_image_embeddings = cond_image_embeddings.repeat_interleave(8, dim=0)
+                    cond_image_embeddings = cond_image_embeddings.repeat_interleave(tile_size, dim=0)
                     # print('cond_image_embeddings size',cond_image_embeddings.size())
                     # print('pose_head size',pose_head.size())
                    
@@ -772,7 +772,7 @@ class ValidationAnimationPipeline(DiffusionPipeline):
                     _noise_pred = self.unet(
                         latent_model_input[:1, idx],
                         t,
-                        encoder_hidden_states=image_embeddings_final[:8],
+                        encoder_hidden_states=image_embeddings_final[:tile_size],
                         added_time_ids=added_time_ids[:1],
                         pose_latents=torch.zeros_like(pose_latents),
                         image_only_indicator=image_only_indicator,
@@ -784,7 +784,7 @@ class ValidationAnimationPipeline(DiffusionPipeline):
                     _noise_pred = self.unet(
                         latent_model_input[1:, idx],
                         t,
-                        encoder_hidden_states=image_embeddings_final[8:],
+                        encoder_hidden_states=image_embeddings_final[tile_size:],
                         added_time_ids=added_time_ids[1:],
                         pose_latents=pose_latents,
                         image_only_indicator=image_only_indicator,
