@@ -25,6 +25,9 @@ Animation_600video_clothes_v10:在反向扩散阶段，将多帧衣服作为条�
 18：左鞋子；
 19：右鞋子；
 
+---
+1. Animation_600video_clothes_v12: 将面部pose和身体pose进行对齐，没有进行四肢的mask。采用的是模特面部pose而没有放大中心化。
+2. Animation_600video_clothes_v13: 将面部pose和身体pose进行对齐，没有进行四肢的mask。采用的是模特面部放大并且中心化的pose。
 
 
 

@@ -183,7 +183,8 @@ class LargeScaleAnimationVideos(Dataset):
             else:
                 reference_frame_align_face = self.face_helper.cropped_faces[0]
                 print('fail to detect face using insightface, extract embedding on align face')
-                reference_frame_id_ante_embedding = self.handler_ante.get_feat(reference_frame_align_face)
+                # reference_frame_id_ante_embedding = self.handler_ante.get_feat(reference_frame_align_face)
+                reference_frame_id_ante_embedding = np.zeros((512,))
 
         for index in batch_index:
             tgt_img_path = osp.join(frames_path, frames_list[index])
@@ -275,7 +276,7 @@ if __name__ == "__main__":
     face_model = FaceModel()
     dataset = LargeScaleAnimationVideos(
         root_path="animation_data",
-        txt_path="animation_data/video_path_new.txt",
+        txt_path="animation_data/video_path.txt",
         width=512,
         height=512,
         n_sample_frames=16,
@@ -295,7 +296,8 @@ if __name__ == "__main__":
                 if isinstance(value, torch.Tensor):
                     print(f"{key}: {value.shape}")
                 else:
-                    print(f"{key}: {value}")
+                    print(f"{key}: {value.shape if hasattr(value, 'shape') else len(value)}")
+            break
         except Exception as e:
             print(f"Error processing sample {i}: {e}")
 
