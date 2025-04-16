@@ -28,7 +28,23 @@ Animation_600video_clothes_v10:在反向扩散阶段，将多帧衣服作为条�
 ---
 1. Animation_600video_clothes_v12: 将面部pose和身体pose进行对齐，没有进行四肢的mask。采用的是模特面部pose而没有放大中心化。
 2. Animation_600video_clothes_v13: 将面部pose和身体pose进行对齐，没有进行四肢的mask。采用的是模特面部放大并且中心化的pose。
+3. Animation_600video_clothes_v14: 将面部pose和身体pose进行对齐，没有进行四肢的mask。采用的是模特面部放大并且中心化的pose。相当于在v13的基础上进行首先256*128，然后512*256上进行训练。
+4. Animation_600video_clothes_v14_woMask: 在v14的基础上，去掉损失函数中面部的mask。
+
+---
+## inference
+运行conmmand_basic_infer.sh进行推理，在文件夹inference上进行，每一个case对应一个实例。
 
 
+推理中的一些问题，
+1. 对于头发无法根据给定的头部生成。
+2. 头部颜色保留一般
 
+---
+人脸重建在以往工作中所采用的损失函数
+1. Fine-Grained Face Swapping via Regional GAN Inversion
+ * 逐像素重建损失
+ * 多尺度 LPIPS 损失
+ * 多尺度人脸反演损失 （arcface的余弦相似度以及解析器损失）
+ * 对抗损失
 

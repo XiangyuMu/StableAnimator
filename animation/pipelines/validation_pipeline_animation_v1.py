@@ -424,8 +424,8 @@ class ValidationAnimationPipeline(DiffusionPipeline):
             image_pose: Union[torch.FloatTensor],
             image_clothes: Union[torch.FloatTensor],
             image_head_pose: Union[PIL.Image.Image, List[PIL.Image.Image], torch.FloatTensor],
-            height: int = 576,
-            width: int = 1024,
+            height: int = 256,
+            width: int = 128,
             num_frames: Optional[int] = None,
             tile_size: Optional[int] = 16,
             tile_overlap: Optional[int] = 4,
@@ -688,7 +688,7 @@ class ValidationAnimationPipeline(DiffusionPipeline):
         # image = image / 127.5 - 1      # normalize to [-1, 1]   head image
         # image = rearrange(image, "h w c -> c h w")
         image = self.image_processor.preprocess(image, height=height, width=width).to(device)
-        print('image size',image.size())
+        # print('image size',image.size())
         face_latent = self._encode_vae_image(image, device, num_videos_per_prompt, do_classifier_free_guidance)
 
 
@@ -717,7 +717,7 @@ class ValidationAnimationPipeline(DiffusionPipeline):
             torch.cuda.empty_cache()
 
         with self.progress_bar(total=len(timesteps) * len(indices)) as progress_bar:
-            print('timesteps',timesteps)
+            # print('timesteps',timesteps)
             for i, t in enumerate(timesteps):
                 # expand the latents if we are doing classifier free guidance
                 latent_model_input = torch.cat([latents] * 2) if do_classifier_free_guidance else latents

@@ -2,7 +2,7 @@ CUDA_VISIBLE_DEVICES=1,0 accelerate launch train_single_v1.py \
  --pretrained_model_name_or_path="checkpoints/SVD" \
  --output_dir="checkpoints/Animation_600video_clothes_v13" \
  --data_root_path="animation_data" \
- --data_path="animation_data/video_path.txt" \
+ --data_path="animation_data/video_path_512_512.txt" \
  --dataset_width=512 \
  --dataset_height=512 \
  --validation_image_folder="/data/muxiangyu/pythonPrograms/StableAnimator/validation/centered_heads_v5" \
@@ -23,4 +23,4 @@ CUDA_VISIBLE_DEVICES=1,0 accelerate launch train_single_v1.py \
  --validation_steps=300 \
  --gradient_checkpointing \
  --checkpoints_total_limit=5000 \
- --resume_from_checkpoint="latest" > train_single.log 2>&1
+#  --resume_from_checkpoint="latest" > train_single.log 2>&1

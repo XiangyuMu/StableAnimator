@@ -4,7 +4,7 @@ import os.path as osp
 
 import numpy as np
 import torch
-from PIL import Image
+from PIL import Image,ImageDraw 
 from torch.utils.data.dataset import Dataset
 from einops import rearrange
 import cv2
@@ -82,6 +82,51 @@ class LargeScaleAnimationVideos(Dataset):
                 mask = np.ones((self.height, self.width), dtype=np.uint8)
         return mask
 
+    def expand_mask_to_rectangle_with_margin(self,image, margin=10):
+        """
+        将指定 mask 图像中的 mask 区域（像素为 255）扩展为一个矩形，并在上下左右边界扩充指定的像素点。
+
+        Args:
+            image (PIL.Image.Image): 输入的 mask 图像。
+            margin (int): 上下左右边界扩充的像素点数。
+
+        Returns:
+            tuple: 扩充后的图像和矩形的左上、右下坐标。
+        """
+        # 转换为灰度图像（确保是单通道）
+        mask = image.convert("L")
+        pixels = mask.load()
+
+        # 获取图像的宽度和高度
+        width, height = mask.size
+
+        # 找到 mask 区域的边界
+        min_x, min_y, max_x, max_y = width, height, 0, 0
+        for y in range(height):
+            for x in range(width):
+                if pixels[x, y] == 255:  # 如果像素值为 255
+                    min_x = min(min_x, x)
+                    min_y = min(min_y, y)
+                    max_x = max(max_x, x)
+                    max_y = max(max_y, y)
+
+        # 如果没有找到 mask 区域，直接返回原图
+        if min_x > max_x or min_y > max_y:
+            return image, (None, None)
+
+        # 在边界上扩充指定的像素点数
+        min_x = max(0, min_x - margin)
+        min_y = max(0, min_y - margin)
+        max_x = min(width - 1, max_x + margin)
+        max_y = min(height - 1, max_y + margin)
+
+        # 创建一个新的图像，并绘制扩展后的矩形
+        expanded_image = Image.new("L", (width, height), 0)
+        draw = ImageDraw.Draw(expanded_image)
+        draw.rectangle([min_x, min_y, max_x, max_y], fill=255)
+
+        return expanded_image, ((min_x, min_y), (max_x, max_y))
+
     def __getitem__(self, idx):
 
         warnings.filterwarnings('ignore', category=DeprecationWarning)
@@ -93,6 +138,7 @@ class LargeScaleAnimationVideos(Dataset):
         clothes_path = osp.join(self.video_files[idx], "clothes_white_complete")
         face_masks_path = osp.join(self.video_files[idx], "faces")
         poses_with_head_path = osp.join(self.video_files[idx], "pose_head_new")
+        head_mask = osp.join(self.video_files[idx], "headMask")
         video_length = self.frame_count(frames_path)
         frames_list = self.find_frames_list(frames_path)
 
@@ -133,6 +179,9 @@ class LargeScaleAnimationVideos(Dataset):
         clothes_pil_image_list = []
         tgt_pil_image_list = []       # target image
         tgt_face_masks_list = []
+        head_mask_rectangle_list = []
+        rectangle_coords_list = []
+
 
         reference_frame_path = osp.join(heads_path, frames_list[reference_frame_idx])
         reference_pil_image = Image.open(reference_frame_path).convert('RGB')
@@ -158,6 +207,7 @@ class LargeScaleAnimationVideos(Dataset):
         reference_poses_with_head_pil_image = reference_poses_with_head_pil_image.resize((self.width, self.height))
         reference_poses_with_head_pil_image = torch.from_numpy(np.array(reference_poses_with_head_pil_image)).float()
         reference_poses_with_head_pil_image = reference_poses_with_head_pil_image / 127.5 - 1      # normalize to [-1, 1]   pose with head image
+
 
 
         self.face_helper.clean_all()
@@ -192,9 +242,11 @@ class LargeScaleAnimationVideos(Dataset):
             pose_name = pose_name + '.png'
             face_name = pose_name
             cloth_name = pose_name
+            head_name = pose_name
             pose_path = osp.join(poses_wo_head_path, pose_name)
             cloth_path = osp.join(clothes_path, cloth_name)
             face_mask_path = osp.join(face_masks_path, face_name)
+            head_mask_path = osp.join(head_mask, face_name)
 
             try:
                 tgt_img_pil = Image.open(tgt_img_path).convert('RGB')
@@ -229,6 +281,21 @@ class LargeScaleAnimationVideos(Dataset):
             pose_wo_head_pil_image_list.append(pose)
 
             try:
+                head_mask_rectangle, rectangle_coords = self.expand_mask_to_rectangle_with_margin(Image.open(head_mask_path))
+                head_mask_rectangle = head_mask_rectangle.resize((self.width, self.height))
+                head_mask_rectangle = torch.from_numpy(np.array(head_mask_rectangle)).float()
+                head_mask_rectangle = head_mask_rectangle / 255     # normalize to [0, 1]
+            except Exception as e:
+                print(f"Fail loading the face_mask: {head_mask_path}")
+                head_mask_rectangle = torch.zeros_like(head_mask_rectangle)
+            head_mask_rectangle_list.append(head_mask_rectangle)
+            rectangle_coords_list.append(rectangle_coords)
+
+
+
+
+
+            try:
                 clothes = Image.open(cloth_path).convert('RGB')
                 clothes = clothes.resize((self.width, self.height))
                 clothes = torch.from_numpy(np.array(clothes)).float()
@@ -242,8 +309,11 @@ class LargeScaleAnimationVideos(Dataset):
         clothes_pil_image_list = torch.stack(clothes_pil_image_list, dim=0)
         tgt_pil_image_list = torch.stack(tgt_pil_image_list, dim=0)
         pose_wo_head_pil_image_list = torch.stack(pose_wo_head_pil_image_list, dim=0)
+        head_mask_rectangle_list = torch.stack(head_mask_rectangle_list, dim=0)
         tgt_pil_image_list = rearrange(tgt_pil_image_list, "f h w c -> f c h w")
         # reference_pil_image = rearrange(reference_pil_image, "h w c -> c h w")
+        head_mask_rectangle_list = torch.unsqueeze(head_mask_rectangle_list, dim=-1)
+        head_mask_rectangle_list = rearrange(head_mask_rectangle_list, "f h w c -> f c h w")
         reference_cloth_pil_image = rearrange(reference_cloth_pil_image, "h w c -> c h w")
         reference_head_pil_image = rearrange(reference_head_pil_image, "h w c -> c h w")
         reference_poses_with_head_pil_image = rearrange(reference_poses_with_head_pil_image, "h w c -> c h w")
@@ -265,6 +335,8 @@ class LargeScaleAnimationVideos(Dataset):
             tgt_face_masks=tgt_face_masks_list,    # face mask list
             reference_head_image=reference_head_pil_image,    # head image
             pose_with_head_image=reference_poses_with_head_pil_image,    # pose with head image
+            head_mask_rectangle=head_mask_rectangle_list,    # head mask rectangle list
+            rectangle_coords=rectangle_coords_list,    # head mask rectangle list
         )
         return sample
 
@@ -276,7 +348,7 @@ if __name__ == "__main__":
     face_model = FaceModel()
     dataset = LargeScaleAnimationVideos(
         root_path="animation_data",
-        txt_path="animation_data/video_path.txt",
+        txt_path="animation_data/video_path_512_256.txt",
         width=512,
         height=512,
         n_sample_frames=16,
